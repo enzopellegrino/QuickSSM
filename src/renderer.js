@@ -224,12 +224,12 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
   exec(`aws sso list-accounts --access-token ${accessToken} --region us-east-1`, (err, stdout) => {
     document.getElementById('loadingOverlay').style.display = 'none';
     if (err) {
-      alert("Errore durante il recupero degli account: " + err.message);
+      alert("Error while retrieving accounts: " + err.message);
       return;
     }
 
     const accounts = JSON.parse(stdout).accountList || [];
-    if (!accounts.length) return alert("Nessun account trovato.");
+    if (!accounts.length) return alert("No accounts found.");
 
     const accountSelect = document.getElementById('accountSelect');
     accountSelect.innerHTML = '';
@@ -244,7 +244,7 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
     accounts.forEach(acc => { map[acc.accountId] = acc.accountName; });
     localStorage.setItem('accountMap', JSON.stringify(map));
 
-    // Carica ruoli quando cambia account
+    // Load roles when account changes
     accountSelect.addEventListener('change', () => {
       const selected = JSON.parse(accountSelect.value);
       exec(`aws sso list-account-roles --account-id ${selected.id} --access-token ${accessToken} --region us-east-1`, (err2, stdout2) => {
@@ -252,7 +252,7 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
         roleSelect.innerHTML = '';
         if (err2) {
           const opt = document.createElement('option');
-          opt.textContent = 'Errore nel caricamento ruoli';
+          opt.textContent = 'Error loading roles';
           roleSelect.appendChild(opt);
           return;
         }

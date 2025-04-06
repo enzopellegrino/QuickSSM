@@ -31,7 +31,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// Avvio sessione SSM
+// Start SSM session
 ipcMain.on('start-ssm-session', (event, { profile, instanceId, sessionId, region }) => {
   const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
   const ptyProcess = pty.spawn(shell, [], {
@@ -55,7 +55,7 @@ ipcMain.on('start-ssm-session', (event, { profile, instanceId, sessionId, region
   });
 });
 
-// Terminazione
+// Termination
 ipcMain.on('terminate-session', (event, sessionId) => {
   if (sessions[sessionId]) {
     sessions[sessionId].kill();
