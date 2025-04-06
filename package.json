@@ -1,7 +1,7 @@
 {
-  "name": "aws-connect-launcher",
+  "name": "hudlops",
   "version": "1.0.0",
-  "description": "",
+  "description": "HudlOps - AWS SSM Manager for EC2 instances",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
