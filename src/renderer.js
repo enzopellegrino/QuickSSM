@@ -21,8 +21,10 @@ function loadProfiles() {
     if (fs.existsSync(file)) {
       const data = ini.parse(fs.readFileSync(file, 'utf-8'));
       Object.keys(data).forEach(key => {
-        const profileName = key.replace(/^profile /, '');
-        profiles.add(profileName);
+        const profileName = key.replace(/^profile /, '').replace(/^sso-session /, '');
+        if (!key.startsWith('sso-session')) {
+          profiles.add(profileName);
+        }
       });
     }
   });
@@ -32,7 +34,7 @@ function loadProfiles() {
 
   if (profiles.size === 0) {
     const option = document.createElement('option');
-    option.textContent = 'Nessun profilo trovato';
+    option.textContent = 'No profiles found';
     option.disabled = true;
     select.appendChild(option);
     return;
@@ -41,7 +43,17 @@ function loadProfiles() {
   profiles.forEach(profileName => {
     const option = document.createElement('option');
     option.value = profileName;
-    option.textContent = profileName;
+
+    const match = profileName.match(/_(\d{12})$/);
+    if (match) {
+      const accountId = match[1];
+      const accountMap = JSON.parse(localStorage.getItem('accountMap') || '{}');
+      const accountName = accountMap[accountId];
+      option.textContent = accountName ? `${accountName} (${accountId})` : profileName;
+    } else {
+      option.textContent = profileName;
+    }
+
     select.appendChild(option);
   });
 }
@@ -53,8 +65,13 @@ document.getElementById('loadEc2').addEventListener('click', () => {
   ec2Select.innerHTML = '<option>Caricamento...</option>';
 
   const { exec } = require('child_process');
-  exec(`aws ec2 describe-instances --profile ${profile} --query "Reservations[].Instances[].[InstanceId, Tags[?Key=='Name']|[0].Value]" --output json`, (error, stdout) => {
+  const configPath = path.join(os.homedir(), '.aws', 'config');
+  const config = ini.parse(fs.readFileSync(configPath, 'utf-8'));
+  const region = document.getElementById('regionSelect').value || 'us-east-1';
+  
+  exec(`aws ec2 describe-instances --profile ${profile} --region ${region} --query "Reservations[].Instances[].[InstanceId, Tags[?Key=='Name']|[0].Value]" --output json`, (error, stdout) => {
     if (error) {
+      document.getElementById('loadingOverlay').style.display = 'none';
       alert(`Errore caricamento EC2: ${error.message}`);
       return;
     }
@@ -70,6 +87,7 @@ document.getElementById('loadEc2').addEventListener('click', () => {
 });
 
 // Avvia terminale
+// Avvia terminale con regione selezionata
 document.getElementById('connect').addEventListener('click', () => {
   const profile = document.getElementById('profileSelect').value;
   const ec2Select = document.getElementById('ec2Select');
@@ -95,7 +113,9 @@ document.getElementById('connect').addEventListener('click', () => {
   term.open(termDiv);
   terminals[sessionId] = term;
 
-  ipcRenderer.send('start-ssm-session', { profile, instanceId, sessionId });
+  // Regione selezionata dall'utente
+  const region = document.getElementById('regionSelect').value || 'us-east-1';
+  ipcRenderer.send('start-ssm-session', { profile, instanceId, sessionId, region });
 
   ipcRenderer.on(`terminal-data-${sessionId}`, (_, data) => {
     if (terminals[sessionId]) terminals[sessionId].write(data);
@@ -107,7 +127,7 @@ document.getElementById('connect').addEventListener('click', () => {
 
   // Cambio tab
   tab.addEventListener('click', (e) => {
-    if (e.target.tagName === 'BUTTON') return; // evita conflitto click su X
+    if (e.target.tagName === 'BUTTON') return;
     switchTab(sessionId);
   });
 
@@ -141,19 +161,137 @@ function switchTab(sessionId) {
   }
 }
 
-// Login SSO
-document.getElementById('login').addEventListener('click', () => {
-  const profile = document.getElementById('profileSelect').value;
+document.getElementById('setupSession').addEventListener('click', () => {
+  const configPath = path.join(os.homedir(), '.aws', 'config');
+  const sessionName = 'hudl-iic-session';
+  const startUrl = 'https://hudl.awsapps.com/start';
+  const region = 'us-east-1';
+
+  const config = fs.existsSync(configPath)
+    ? ini.parse(fs.readFileSync(configPath, 'utf-8'))
+    : {};
+
+  config[`sso-session ${sessionName}`] = {
+    sso_start_url: startUrl,
+    sso_region: region
+  };
+
+  fs.writeFileSync(configPath, ini.stringify(config));
+
   const { exec } = require('child_process');
-  exec(`aws sso login --profile ${profile}`, (error) => {
+  exec(`aws sso login --sso-session ${sessionName}`, (error) => {
     if (error) {
-      alert(`Errore login: ${error.message}`);
+      alert(`Errore durante il login SSO: ${error.message}`);
       return;
     }
-    alert(`Login SSO effettuato con successo per ${profile}`);
+    alert(`Sessione SSO '${sessionName}' configurata e autenticata con successo.`);
+    loadProfiles();
   });
 });
 
 document.addEventListener('DOMContentLoaded', () => {
   loadProfiles();
+});
+
+document.getElementById('discoverProfiles').addEventListener('click', () => {
+  document.getElementById('loadingOverlay').style.display = 'block';
+  const cacheDir = path.join(os.homedir(), '.aws', 'sso', 'cache');
+  let accessToken = null;
+
+  try {
+    const files = fs.readdirSync(cacheDir);
+    for (const file of files) {
+      const content = JSON.parse(fs.readFileSync(path.join(cacheDir, file), 'utf-8'));
+      const expiresAt = new Date(content.expiresAt);
+      if (content.accessToken && expiresAt > new Date()) {
+        accessToken = content.accessToken;
+        break;
+      }
+    }
+  } catch (err) {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    alert("Errore nel recupero del token SSO: " + err.message);
+    return;
+  }
+
+  if (!accessToken) {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    alert("Nessun token valido trovato. Fai login con SSO prima.");
+    return;
+  }
+
+  const { exec } = require('child_process');
+  exec(`aws sso list-accounts --access-token ${accessToken} --region us-east-1`, (err, stdout) => {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    if (err) {
+      alert("Errore durante il recupero degli account: " + err.message);
+      return;
+    }
+
+    const accounts = JSON.parse(stdout).accountList || [];
+    if (!accounts.length) return alert("Nessun account trovato.");
+
+    const accountSelect = document.getElementById('accountSelect');
+    accountSelect.innerHTML = '';
+    accounts.forEach((acc, i) => {
+      const opt = document.createElement('option');
+      opt.value = JSON.stringify({ id: acc.accountId, name: acc.accountName });
+      opt.textContent = `${acc.accountName} (${acc.accountId})`;
+      accountSelect.appendChild(opt);
+    });
+
+    const map = {};
+    accounts.forEach(acc => { map[acc.accountId] = acc.accountName; });
+    localStorage.setItem('accountMap', JSON.stringify(map));
+
+    // Carica ruoli quando cambia account
+    accountSelect.addEventListener('change', () => {
+      const selected = JSON.parse(accountSelect.value);
+      exec(`aws sso list-account-roles --account-id ${selected.id} --access-token ${accessToken} --region us-east-1`, (err2, stdout2) => {
+        const roleSelect = document.getElementById('roleSelect');
+        roleSelect.innerHTML = '';
+        if (err2) {
+          const opt = document.createElement('option');
+          opt.textContent = 'Errore nel caricamento ruoli';
+          roleSelect.appendChild(opt);
+          return;
+        }
+
+        const roles = JSON.parse(stdout2).roleList || [];
+        roles.forEach(role => {
+          const opt = document.createElement('option');
+          opt.value = role.roleName;
+          opt.textContent = role.roleName;
+          roleSelect.appendChild(opt);
+        });
+      });
+    });
+
+    accountSelect.dispatchEvent(new Event('change'));
+    document.getElementById('profileModal').style.display = 'flex';
+  });
+
+  document.getElementById('confirmProfile').onclick = () => {
+    const selected = JSON.parse(document.getElementById('accountSelect').value);
+    const selectedRole = document.getElementById('roleSelect').value;
+
+    const configPath = path.join(os.homedir(), '.aws', 'config');
+    const config = fs.existsSync(configPath) ? ini.parse(fs.readFileSync(configPath, 'utf-8')) : {};
+    const profileName = `${selectedRole}_${selected.id}`;
+    config[`profile ${profileName}`] = {
+      sso_session: 'hudl-iic-session',
+      sso_account_id: selected.id,
+      sso_role_name: selectedRole,
+      region: 'us-east-1',
+      output: 'json'
+    };
+    fs.writeFileSync(configPath, ini.stringify(config));
+    alert(`Profilo '${profileName}' creato con successo.`);
+    loadProfiles();
+    document.getElementById('profileModal').style.display = 'none';
+  };
+
+  document.getElementById('cancelProfile').onclick = () => {
+    document.getElementById('profileModal').style.display = 'none';
+  };
 });

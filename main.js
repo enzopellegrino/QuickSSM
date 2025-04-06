@@ -32,7 +32,7 @@ app.on('window-all-closed', () => {
 });
 
 // Avvio sessione SSM
-ipcMain.on('start-ssm-session', (event, { profile, instanceId, sessionId }) => {
+ipcMain.on('start-ssm-session', (event, { profile, instanceId, sessionId, region }) => {
   const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
   const ptyProcess = pty.spawn(shell, [], {
     name: 'xterm-color',
@@ -44,7 +44,7 @@ ipcMain.on('start-ssm-session', (event, { profile, instanceId, sessionId }) => {
 
   sessions[sessionId] = ptyProcess;
 
-  ptyProcess.write(`aws ssm start-session --target ${instanceId} --profile ${profile}\r`);
+  ptyProcess.write(`aws ssm start-session --target ${instanceId} --region ${region} --profile ${profile}\r`);
 
   ptyProcess.on('data', data => {
     event.sender.send(`terminal-data-${sessionId}`, data);
