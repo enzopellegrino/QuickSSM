@@ -68,7 +68,8 @@
 
     .terminal-container {
       background: #000;
-      min-height: 350px;
+      min-height: 500px;
+      height: calc(100vh - 400px);
       border: 1px solid #444;
       border-top: none;
       padding: 20px 20px 50px 20px;
@@ -77,6 +78,8 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       overflow: auto;
       scroll-padding: 30px;
+      display: flex;
+      flex-direction: column;
     }
 
     .terminal-container > div {
@@ -98,8 +101,11 @@
 
     .terminal-container > div.active {
       display: block;
-      height: 100%;
+      flex-grow: 1;
       width: 100%;
+      height: auto;
+      min-height: 400px;
+      border: 2px dashed red; /* temporary border for debugging layout */
     }
   </style>
 </head>

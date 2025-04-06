@@ -4,6 +4,7 @@ const os = require('os');
 const ini = require('ini');
 const { ipcRenderer } = require('electron');
 const { Terminal } = require('xterm');
+const { FitAddon } = require('xterm-addon-fit');
 
 let sessionCounter = 0;
 const terminalTabs = document.getElementById('terminalTabs');
@@ -116,11 +117,17 @@ document.getElementById('connect').addEventListener('click', () => {
       background: '#000000',
       foreground: '#00FF00',
       cursor: 'white'
-    }
+    },
+    convertEol: true
   });
+  const fitAddon = new FitAddon();
   term.open(termDiv);
+  term.loadAddon(fitAddon);
+  fitAddon.fit();
+  setTimeout(() => term.scrollToBottom(), 100);
   term.focus();
   terminals[sessionId] = term;
+  term._fitAddon = fitAddon;
 
   // Regione selezionata dall'utente
   const region = document.getElementById('regionSelect').value || 'us-east-1';
@@ -177,6 +184,10 @@ function switchTab(sessionId) {
   const activeTab = document.getElementById(`tab-${sessionId}`);
   const activeTerminal = document.getElementById(`terminal-${sessionId}`);
   if (activeTab && activeTerminal) {
+    const term = terminals[sessionId];
+    if (term && term._fitAddon) {
+      setTimeout(() => term._fitAddon.fit(), 50);
+    }
     activeTab.classList.add('active');
     activeTerminal.classList.add('active');
   }
@@ -337,4 +348,12 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
     </div>
   `;
   document.body.appendChild(errorModal);
+});
+
+window.addEventListener('resize', () => {
+  Object.values(terminals).forEach(term => {
+    if (term._fitAddon) {
+      term._fitAddon.fit();
+    }
+  });
 });
