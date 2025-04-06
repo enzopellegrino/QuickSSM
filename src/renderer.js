@@ -65,8 +65,6 @@ document.getElementById('loadEc2').addEventListener('click', () => {
   ec2Select.innerHTML = '<option>Caricamento...</option>';
 
   const { exec } = require('child_process');
-  const configPath = path.join(os.homedir(), '.aws', 'config');
-  const config = ini.parse(fs.readFileSync(configPath, 'utf-8'));
   const region = document.getElementById('regionSelect').value || 'us-east-1';
   
   exec(`aws ec2 describe-instances --profile ${profile} --region ${region} --query "Reservations[].Instances[].[InstanceId, Tags[?Key=='Name']|[0].Value]" --output json`, (error, stdout) => {
@@ -87,7 +85,6 @@ document.getElementById('loadEc2').addEventListener('click', () => {
 });
 
 // Avvia terminale
-// Avvia terminale con regione selezionata
 document.getElementById('connect').addEventListener('click', () => {
   const profile = document.getElementById('profileSelect').value;
   const ec2Select = document.getElementById('ec2Select');
@@ -109,8 +106,20 @@ document.getElementById('connect').addEventListener('click', () => {
   termDiv.id = `terminal-${sessionId}`;
   terminalTabs.appendChild(termDiv);
 
-  const term = new Terminal({ fontSize: 14, cursorBlink: true });
+  const term = new Terminal({
+    fontFamily: 'monospace',
+    fontSize: 14,
+    lineHeight: 1.2,
+    cursorBlink: true,
+    scrollback: 2000,
+    theme: {
+      background: '#000000',
+      foreground: '#00FF00',
+      cursor: 'white'
+    }
+  });
   term.open(termDiv);
+  term.focus();
   terminals[sessionId] = term;
 
   // Regione selezionata dall'utente
@@ -118,7 +127,19 @@ document.getElementById('connect').addEventListener('click', () => {
   ipcRenderer.send('start-ssm-session', { profile, instanceId, sessionId, region });
 
   ipcRenderer.on(`terminal-data-${sessionId}`, (_, data) => {
-    if (terminals[sessionId]) terminals[sessionId].write(data);
+    if (data.includes('TargetNotConnected')) {
+      document.getElementById('errorModalText').textContent =
+        "❌ Unable to connect: This EC2 instance is not connected to AWS Systems Manager.\n\nPlease check:\n• SSM Agent is running\n• Correct IAM Role\n• Network access to SSM endpoint";
+      document.getElementById('errorModal').style.display = 'flex';
+      return;
+    }
+    const lines = data.split('\n').filter(line =>
+      !line.includes('aws ssm') &&
+      !line.includes('Starting session with SessionId') &&
+      !line.trim().startsWith('bash-')
+    );
+    terminals[sessionId].write(lines.join('\n'));
+    terminals[sessionId].scrollToBottom();
   });
 
   term.onData(data => {
@@ -294,4 +315,26 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
   document.getElementById('cancelProfile').onclick = () => {
     document.getElementById('profileModal').style.display = 'none';
   };
+
+  // Modal for error handling
+  const errorModal = document.createElement('div');
+  errorModal.id = "errorModal";
+  errorModal.style.display = 'none';
+  errorModal.style.position = 'fixed';
+  errorModal.style.top = '0';
+  errorModal.style.left = '0';
+  errorModal.style.width = '100%';
+  errorModal.style.height = '100%';
+  errorModal.style.background = 'rgba(0,0,0,0.7)';
+  errorModal.style.justifyContent = 'center';
+  errorModal.style.alignItems = 'center';
+  errorModal.style.zIndex = '99999';
+  errorModal.innerHTML = `
+    <div style="background:#1e1e1e; padding:20px; border-radius:8px; width:400px; color:white;">
+      <h3 style="margin-top:0;">Connection Error</h3>
+      <pre id="errorModalText" style="white-space:pre-wrap;"></pre>
+      <button onclick="document.getElementById('errorModal').style.display='none';" style="margin-top:10px;">Close</button>
+    </div>
+  `;
+  document.body.appendChild(errorModal);
 });
