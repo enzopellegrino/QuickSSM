@@ -147,9 +147,10 @@ document.getElementById('connect').addEventListener('click', () => {
     cursorBlink: true,
     scrollback: 2000,
     theme: {
-      background: '#000000',
-      foreground: '#00FF00',
-      cursor: 'white'
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
+      cursor: '#ffffff',
+      selection: '#264f78'
     },
     convertEol: true
   });
