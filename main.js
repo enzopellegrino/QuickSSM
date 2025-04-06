@@ -17,6 +17,10 @@ function createWindow () {
     }
   });
 
+  // Massimizza la finestra all'avvio
+  mainWindow.maximize();
+  // Alternativa: mainWindow.setFullScreen(true); // per modalità schermo intero completo
+
   mainWindow.loadFile('src/index.html');
 }
 
@@ -50,8 +54,23 @@ ipcMain.on('start-ssm-session', (event, { profile, instanceId, sessionId, region
     event.sender.send(`terminal-data-${sessionId}`, data);
   });
 
-  ipcMain.on(`terminal-input-${sessionId}`, (_, input) => {
+  ptyProcess.on('exit', () => {
+    event.sender.send(`terminal-exit-${sessionId}`);
+    cleanupSession(sessionId);
+  });
+
+  // Input handler
+  const inputHandler = (_, input) => {
     if (sessions[sessionId]) sessions[sessionId].write(input);
+  };
+  
+  ipcMain.on(`terminal-input-${sessionId}`, inputHandler);
+  
+  // Terminal resize handler
+  ipcMain.on(`terminal-resize-${sessionId}`, (_, { cols, rows }) => {
+    if (sessions[sessionId]) {
+      sessions[sessionId].resize(cols, rows);
+    }
   });
 });
 
@@ -59,6 +78,17 @@ ipcMain.on('start-ssm-session', (event, { profile, instanceId, sessionId, region
 ipcMain.on('terminate-session', (event, sessionId) => {
   if (sessions[sessionId]) {
     sessions[sessionId].kill();
-    delete sessions[sessionId];
+    cleanupSession(sessionId);
   }
 });
+
+// Helper function to clean up session resources
+function cleanupSession(sessionId) {
+  if (sessions[sessionId]) {
+    delete sessions[sessionId];
+  }
+  
+  // Remove all related listeners
+  ipcMain.removeAllListeners(`terminal-input-${sessionId}`);
+  ipcMain.removeAllListeners(`terminal-resize-${sessionId}`);
+}

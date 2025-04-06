@@ -66,46 +66,105 @@ function loadProfiles() {
   document.getElementById('regionSelect').addEventListener('change', () => {
     const profile = document.getElementById('profileSelect').value;
     const region = document.getElementById('regionSelect').value || 'us-east-1';
-    if (profile) loadEc2Instances(profile, region);
+    if (profile) {
+      document.getElementById('ec2LoadingSpinner').style.display = 'block';
+      loadEc2Instances(profile, region);
+    }
   });
 
-  document.getElementById('loadEc2').addEventListener('click', () => {
-    const profile = document.getElementById('profileSelect').value;
-    const region = document.getElementById('regionSelect').value || 'us-east-1';
-    if (!profile) return alert("Please select a profile first.");
-    loadEc2Instances(profile, region);
-  });
+  const loadEc2Button = document.getElementById('loadEc2');
+  if (loadEc2Button) {
+    loadEc2Button.onclick = () => {
+      const profile = document.getElementById('profileSelect').value;
+      const region = document.getElementById('regionSelect').value || 'us-east-1';
+      if (!profile) {
+        alert("Please select an AWS profile first.");
+        return;
+      }
+      // Mostra lo spinner prima di iniziare il caricamento
+      document.getElementById('ec2LoadingSpinner').style.display = 'block';
+      loadEc2Instances(profile, region);
+    };
+  }
+  
+  // Forza un caricamento iniziale
+  const initialProfile = document.getElementById('profileSelect')?.value;
+  const initialRegion = document.getElementById('regionSelect')?.value || 'us-east-1';
+  if (initialProfile) {
+    loadEc2Instances(initialProfile, initialRegion);
+  }
 }
 
 function loadEc2Instances(profile, region) {
-  const ec2Select = document.getElementById('ec2Select');
-  ec2Select.disabled = true;
-  ec2Select.innerHTML = '<option>🔄 Loading instances...</option>';
+  const ec2Container = document.getElementById('ec2MultiselectContainer');
+  ec2Container.innerHTML = '🔄 Loading instances...';
+  
+  // Mostra lo spinner durante il caricamento
+  document.getElementById('ec2LoadingSpinner').style.display = 'block';
 
   const { exec } = require('child_process');
   
   exec(`aws ec2 describe-instances --profile ${profile} --region ${region} --query "Reservations[].Instances[].[InstanceId, Tags[?Key=='Name']|[0].Value]" --output json`, (error, stdout) => {
+    // Nascondi lo spinner quando il caricamento è completato
+    document.getElementById('ec2LoadingSpinner').style.display = 'none';
+    
     if (error) {
       document.getElementById('loadingOverlay').style.display = 'none';
       alert(`Errore caricamento EC2: ${error.message}`);
-      document.getElementById('ec2Select').disabled = false;
       return;
     }
     const data = JSON.parse(stdout);
-    ec2Select.innerHTML = '';
-    if (data.length === 0) {
-      const option = document.createElement('option');
-      option.textContent = 'No instances found';
-      option.disabled = true;
-      option.selected = true;
-      ec2Select.appendChild(option);
-    } else {
-      const placeholder = document.createElement('option');
-      placeholder.textContent = 'Select an instance';
-      placeholder.disabled = true;
-      placeholder.selected = true;
-      ec2Select.appendChild(placeholder);
+    ec2Container.innerHTML = '';
+    const controls = document.createElement('div');
+    controls.style.display = 'flex';
+    controls.style.justifyContent = 'space-between';
+    controls.style.marginBottom = '10px';
 
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.textContent = '✔ Select All';
+    selectAllBtn.onclick = () => {
+      document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]').forEach(cb => cb.checked = true);
+    };
+
+    const deselectAllBtn = document.createElement('button');
+    deselectAllBtn.textContent = '❌ Deselect All';
+    deselectAllBtn.onclick = () => {
+      document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
+    };
+
+    controls.appendChild(selectAllBtn);
+    controls.appendChild(deselectAllBtn);
+    ec2Container.appendChild(controls);
+
+    if (data.length === 0) {
+      ec2Container.innerHTML = '';
+      ec2Container.appendChild(controls);
+      const emptyMsg = document.createElement('p');
+      emptyMsg.style.color = 'gray';
+      emptyMsg.textContent = 'No instances found';
+      ec2Container.appendChild(emptyMsg);
+      
+      const ec2Select = document.getElementById('ec2Select');
+      if (ec2Select) {
+        ec2Select.innerHTML = '';
+        const noOption = document.createElement('option');
+        noOption.value = '';
+        noOption.textContent = 'No instances found';
+        noOption.disabled = true;
+        noOption.selected = true;
+        ec2Select.appendChild(noOption);
+      }
+    } else {
+      data.forEach(([id, name]) => {
+        const row = document.createElement('div');
+        row.innerHTML = `
+          <input type="checkbox" value="${id}" data-name="${name || id}"> ${name || 'N/A'} (${id})
+        `;
+        ec2Container.appendChild(row);
+      });
+      
+      const ec2Select = document.getElementById('ec2Select');
+      ec2Select.innerHTML = '';
       data.forEach(([id, name]) => {
         const option = document.createElement('option');
         option.value = id;
@@ -113,99 +172,138 @@ function loadEc2Instances(profile, region) {
         ec2Select.appendChild(option);
       });
     }
-    document.getElementById('ec2Select').disabled = false;
   });
 }
 
-// Avvia terminale
-document.getElementById('connect').addEventListener('click', () => {
+document.getElementById('openEc2Modal').addEventListener('click', () => {
+  document.getElementById('ec2MultiselectContainer').style.display = 'block';
+  document.getElementById('ec2Modal').style.display = 'flex';
+});
+
+document.getElementById('cancelEc2Selection').addEventListener('click', () => {
+  document.getElementById('ec2Modal').style.display = 'none';
+});
+
+document.getElementById('applyEc2Selection').addEventListener('click', () => {
+  const selectedInstances = Array.from(document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]:checked')).map(cb => ({
+    id: cb.value,
+    label: cb.dataset.name
+  }));
+
+  const buttonLabel = selectedInstances.length ? `Selected ${selectedInstances.length} instances` : 'Select EC2 Instances';
+  document.getElementById('openEc2Modal').textContent = buttonLabel;
+  document.getElementById('ec2Modal').style.display = 'none';
+
   const profile = document.getElementById('profileSelect').value;
-  const ec2Select = document.getElementById('ec2Select');
-  const instanceId = ec2Select.value;
-  if (!instanceId) return alert('Seleziona un\'istanza EC2');
-
-  const fullLabel = ec2Select.selectedOptions[0].textContent;
-  const label = fullLabel.replace(/\s*\([^)]+\)$/, '').trim(); // removes ID from "Name (i-12345)"
-  const sessionId = `ssm-${sessionCounter++}`;
-
-  // Crea tab
-  const tab = document.createElement('div');
-  tab.className = 'tab';
-  tab.id = `tab-${sessionId}`;
-  tab.innerHTML = `${label}<button>❌</button>`;
-  tabsBar.appendChild(tab);
-
-  // Crea contenitore terminale
-  const termDiv = document.createElement('div');
-  termDiv.id = `terminal-${sessionId}`;
-  terminalTabs.appendChild(termDiv);
-
-  const term = new Terminal({
-    fontFamily: 'monospace',
-    fontSize: 14,
-    lineHeight: 1.2,
-    cursorBlink: true,
-    scrollback: 2000,
-    theme: {
-      background: '#1e1e1e',
-      foreground: '#d4d4d4',
-      cursor: '#ffffff',
-      selection: '#264f78'
-    },
-    convertEol: true
-  });
-  const fitAddon = new FitAddon();
-  term.open(termDiv);
-  term.loadAddon(fitAddon);
-  fitAddon.fit();
-  setTimeout(() => term.scrollToBottom(), 100);
-  term.focus();
-  terminals[sessionId] = term;
-  term._fitAddon = fitAddon;
-
-  // Regione selezionata dall'utente
   const region = document.getElementById('regionSelect').value || 'us-east-1';
-  ipcRenderer.send('start-ssm-session', { profile, instanceId, sessionId, region });
 
-  ipcRenderer.on(`terminal-data-${sessionId}`, (_, data) => {
-    if (data.includes('TargetNotConnected')) {
-      document.getElementById('errorModalText').textContent =
-        "❌ Unable to connect: This EC2 instance is not connected to AWS Systems Manager.\n\nPlease check:\n• SSM Agent is running\n• Correct IAM Role\n• Network access to SSM endpoint";
-      document.getElementById('errorModal').style.display = 'flex';
-      return;
+  const openSessions = Object.keys(terminals).map(sessionId => {
+    const tab = document.getElementById(`tab-${sessionId}`);
+    const instanceId = tab.getAttribute('data-instance-id');
+    return instanceId ? { sessionId, instanceId } : null;
+  }).filter(Boolean);
+
+  const selectedIds = selectedInstances.map(i => i.id);
+
+  // Chiude sessioni non selezionate
+  openSessions.forEach(({ sessionId, instanceId }) => {
+    if (!selectedIds.includes(instanceId)) {
+      ipcRenderer.send('terminate-session', sessionId);
+      document.getElementById(`tab-${sessionId}`)?.remove();
+      document.getElementById(`terminal-${sessionId}`)?.remove();
+      delete terminals[sessionId];
     }
-    const lines = data.split('\n').filter(line =>
-      !line.includes('aws ssm') &&
-      !line.includes('Starting session with SessionId') &&
-      !line.trim().startsWith('bash-')
-    );
-    terminals[sessionId].write(lines.join('\n'));
-    terminals[sessionId].scrollToBottom();
   });
 
-  term.onData(data => {
-    ipcRenderer.send(`terminal-input-${sessionId}`, data);
-  });
+  // Apre nuove sessioni solo se non già aperte
+  selectedInstances.forEach(({ id, label }) => {
+    if (openSessions.find(s => s.instanceId === id)) return;
 
-  // Cambio tab
-  tab.addEventListener('click', (e) => {
-    if (e.target.tagName === 'BUTTON') return;
+    const sessionId = `ssm-${sessionCounter++}`;
+    const tab = document.createElement('div');
+    tab.className = 'tab';
+    tab.id = `tab-${sessionId}`;
+    tab.setAttribute('data-instance-id', id);
+    
+    // Mostra solo il nome dell'istanza nella tab
+    const displayName = label || 'Unnamed Instance';
+    tab.innerHTML = `${displayName}<button>❌</button>`;
+    
+    tabsBar.appendChild(tab);
+
+    const termDiv = document.createElement('div');
+    termDiv.id = `terminal-${sessionId}`;
+    terminalTabs.appendChild(termDiv);
+
+    const term = new Terminal({
+      fontFamily: 'monospace',
+      fontSize: 14,
+      lineHeight: 1.2,
+      cursorBlink: true,
+      scrollback: 2000,
+      theme: {
+        background: '#1e1e1e',
+        foreground: '#d4d4d4',
+        cursor: '#ffffff',
+        selection: '#264f78'
+      },
+      convertEol: true
+    });
+
+    const fitAddon = new FitAddon();
+    term.open(termDiv);
+    term.loadAddon(fitAddon);
+    fitAddon.fit();
+    setTimeout(() => term.scrollToBottom(), 100);
+    term.focus();
+    terminals[sessionId] = term;
+    term._fitAddon = fitAddon;
+
+    ipcRenderer.send('start-ssm-session', {
+      profile,
+      instanceId: id,
+      sessionId,
+      region
+    });
+
+    ipcRenderer.on(`terminal-data-${sessionId}`, (_, data) => {
+      if (data.includes('TargetNotConnected')) {
+        document.getElementById('errorModalText').textContent =
+          "❌ Unable to connect: This EC2 instance is not connected to AWS Systems Manager.\n\nPlease check:\n• SSM Agent is running\n• Correct IAM Role\n• Network access to SSM endpoint";
+        document.getElementById('errorModal').style.display = 'flex';
+        return;
+      }
+      const lines = data.split('\n').filter(line =>
+        !line.includes('aws ssm') &&
+        !line.includes('Starting session with SessionId') &&
+        !line.trim().startsWith('bash-')
+      );
+      terminals[sessionId].write(lines.join('\n'));
+      terminals[sessionId].scrollToBottom();
+    });
+
+    term.onData(data => {
+      ipcRenderer.send(`terminal-input-${sessionId}`, data);
+    });
+
+    tab.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      switchTab(sessionId);
+    });
+
+    tab.querySelector('button').addEventListener('click', () => {
+      ipcRenderer.send('terminate-session', sessionId);
+      tab.remove();
+      termDiv.remove();
+      delete terminals[sessionId];
+      if (Object.keys(terminals).length) {
+        const first = Object.keys(terminals)[0];
+        switchTab(first);
+      }
+    });
+
     switchTab(sessionId);
   });
-
-  // Chiudi tab
-  tab.querySelector('button').addEventListener('click', () => {
-    ipcRenderer.send('terminate-session', sessionId);
-    tab.remove();
-    termDiv.remove();
-    delete terminals[sessionId];
-    if (Object.keys(terminals).length) {
-      const first = Object.keys(terminals)[0];
-      switchTab(first);
-    }
-  });
-
-  switchTab(sessionId);
 });
 
 // Cambio tab visivamente
@@ -382,6 +480,106 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
     </div>
   `;
   document.body.appendChild(errorModal);
+});
+
+document.getElementById('connect').addEventListener('click', () => {
+  const profile = document.getElementById('profileSelect').value;
+  const region = document.getElementById('regionSelect').value || 'us-east-1';
+  const instanceId = document.getElementById('ec2Select').value;
+
+  if (!profile || !instanceId) {
+    return alert('Please select both a profile and an EC2 instance.');
+  }
+
+  // Estrai solo il nome dell'istanza senza l'ID
+  const fullLabel = document.querySelector(`#ec2Select option[value="${instanceId}"]`)?.textContent || instanceId;
+  let displayName = fullLabel;
+  
+  // Se l'etichetta contiene l'ID tra parentesi, estrai solo il nome
+  if (fullLabel.includes('(')) {
+    displayName = fullLabel.substring(0, fullLabel.lastIndexOf('(')).trim();
+  }
+
+  const sessionId = `ssm-${sessionCounter++}`;
+  const tab = document.createElement('div');
+  tab.className = 'tab';
+  tab.id = `tab-${sessionId}`;
+  tab.setAttribute('data-instance-id', instanceId);
+  tab.innerHTML = `${displayName}<button>❌</button>`;
+  tabsBar.appendChild(tab);
+
+  const termDiv = document.createElement('div');
+  termDiv.id = `terminal-${sessionId}`;
+  terminalTabs.appendChild(termDiv);
+
+  const term = new Terminal({
+    fontFamily: 'monospace',
+    fontSize: 14,
+    lineHeight: 1.2,
+    cursorBlink: true,
+    scrollback: 2000,
+    theme: {
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
+      cursor: '#ffffff',
+      selection: '#264f78'
+    },
+    convertEol: true
+  });
+
+  const fitAddon = new FitAddon();
+  term.open(termDiv);
+  term.loadAddon(fitAddon);
+  fitAddon.fit();
+  setTimeout(() => term.scrollToBottom(), 100);
+  term.focus();
+  terminals[sessionId] = term;
+  term._fitAddon = fitAddon;
+
+  ipcRenderer.send('start-ssm-session', {
+    profile,
+    instanceId,
+    sessionId,
+    region
+  });
+
+  ipcRenderer.on(`terminal-data-${sessionId}`, (_, data) => {
+    if (data.includes('TargetNotConnected')) {
+      document.getElementById('errorModalText').textContent =
+        "❌ Unable to connect: This EC2 instance is not connected to AWS Systems Manager.\n\nPlease check:\n• SSM Agent is running\n• Correct IAM Role\n• Network access to SSM endpoint";
+      document.getElementById('errorModal').style.display = 'flex';
+      return;
+    }
+    const lines = data.split('\n').filter(line =>
+      !line.includes('aws ssm') &&
+      !line.includes('Starting session with SessionId') &&
+      !line.trim().startsWith('bash-')
+    );
+    terminals[sessionId].write(lines.join('\n'));
+    terminals[sessionId].scrollToBottom();
+  });
+
+  term.onData(data => {
+    ipcRenderer.send(`terminal-input-${sessionId}`, data);
+  });
+
+  tab.addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON') return;
+    switchTab(sessionId);
+  });
+
+  tab.querySelector('button').addEventListener('click', () => {
+    ipcRenderer.send('terminate-session', sessionId);
+    tab.remove();
+    termDiv.remove();
+    delete terminals[sessionId];
+    if (Object.keys(terminals).length) {
+      const first = Object.keys(terminals)[0];
+      switchTab(first);
+    }
+  });
+
+  switchTab(sessionId);
 });
 
 window.addEventListener('resize', () => {

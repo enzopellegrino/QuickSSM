@@ -5,12 +5,22 @@
   <title>OPS</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
   <style>
-    body {
+    html, body {
       padding: 0;
-      margin: 0 auto;
-      max-width: 1200px;
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       background-color: #121212;
       color: #fff;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      margin: 0;
+      max-width: 100%; /* Rimuove la limitazione di larghezza */
     }
 
     select, button {
@@ -31,7 +41,7 @@
     #tabsBar {
       display: flex;
       border-bottom: 1px solid #444;
-      margin-top: 20px;
+      margin-top: 10px;
       overflow-x: auto;
       background-color: #1a1a1a;
       padding: 5px;
@@ -69,12 +79,12 @@
 
     .terminal-container {
       background: #000;
-      min-height: 420px;
-      height: 420px;
+      flex: 1;
+      min-height: 0;
       border: 1px solid #444;
       border-top: none;
       padding: 0;
-      margin: 20px 0;
+      margin: 10px;
       border-radius: 0 0 6px 6px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       overflow: auto;
@@ -86,7 +96,7 @@
     .terminal-container > div {
       font-family: monospace !important;
       width: 100%;
-      height: 400px;
+      height: 100%;
       overflow: auto;
       white-space: pre;
       word-break: normal;
@@ -104,14 +114,92 @@
       display: block;
       flex-grow: 1;
       width: 100%;
-      height: auto;
       height: 100%;
       max-width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #1f1f1f;
+      color: white;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #333;
+      text-align: left;
+    }
+
+    th {
+      background-color: #2b2b2b;
+    }
+
+    tr:hover {
+      background-color: #3a3a3a;
+      cursor: pointer;
+    }
+
+    /* Responsive styles */
+    @media (max-height: 768px) {
+      .terminal-container {
+        min-height: 30vh;
+        height: calc(100vh - 240px);
+      }
+    }
+
+    @media (max-height: 600px) {
+      .terminal-container {
+        min-height: 25vh;
+        height: calc(100vh - 200px);
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 0 10px;
+      }
+      
+      .terminal-container {
+        width: calc(100% - 20px);
+      }
+    }
+
+    .multiselect-dropdown {
+      background: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 6px;
+      color: white;
+      width: 250px;
+    }
+
+    .multiselect-dropdown label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .multiselect-dropdown input[type="checkbox"] {
+      accent-color: #007acc;
+    }
+
+    /* Contenitori principali */
+    .header-container {
+      padding: 10px;
+    }
+
+    .controls-container {
+      padding: 0 10px;
     }
   </style>
 </head>
 <body>
-  <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 auto 20px auto; max-width: 1200px; width: 100%;">
+  <div class="header-container" style="display: flex; align-items: center; justify-content: space-between;">
     <div style="display: flex; align-items: center; gap: 15px;">
       <img src="logo.png" alt="HudlOps Logo" style="height: 50px;">
       <h1 style="margin: 0;">OPS</h1>
@@ -123,7 +211,7 @@
     </div>
   </div>
 
-  <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 20px;">
+  <div class="controls-container" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px;">
     <div>
       <label for="profileSelect">AWS Profile:</label><br>
       <select id="profileSelect"></select>
@@ -136,45 +224,31 @@
         <option value="us-east-2">US East (Ohio)</option>
         <option value="us-west-1">US West (N. California)</option>
         <option value="us-west-2">US West (Oregon)</option>
-        <option value="af-south-1">Africa (Cape Town)</option>
-        <option value="ap-east-1">Asia Pacific (Hong Kong)</option>
         <option value="ap-south-1">Asia Pacific (Mumbai)</option>
-        <option value="ap-south-2">Asia Pacific (Hyderabad)</option>
+        <option value="ap-northeast-3">Asia Pacific (Osaka)</option>
+        <option value="ap-northeast-2">Asia Pacific (Seoul)</option>
         <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
         <option value="ap-southeast-2">Asia Pacific (Sydney)</option>
-        <option value="ap-southeast-3">Asia Pacific (Jakarta)</option>
-        <option value="ap-southeast-4">Asia Pacific (Melbourne)</option>
         <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
-        <option value="ap-northeast-2">Asia Pacific (Seoul)</option>
-        <option value="ap-northeast-3">Asia Pacific (Osaka)</option>
         <option value="ca-central-1">Canada (Central)</option>
         <option value="eu-central-1">Europe (Frankfurt)</option>
-        <option value="eu-central-2">Europe (Zurich)</option>
-        <option value="eu-north-1">Europe (Stockholm)</option>
-        <option value="eu-south-1">Europe (Milan)</option>
-        <option value="eu-south-2">Europe (Spain)</option>
         <option value="eu-west-1" selected>Europe (Ireland)</option>
         <option value="eu-west-2">Europe (London)</option>
         <option value="eu-west-3">Europe (Paris)</option>
-        <option value="il-central-1">Israel (Tel Aviv)</option>
-        <option value="me-central-1">Middle East (UAE)</option>
-        <option value="me-south-1">Middle East (Bahrain)</option>
+        <option value="eu-north-1">Europe (Stockholm)</option>
         <option value="sa-east-1">South America (São Paulo)</option>
-        <option value="us-gov-east-1">AWS GovCloud (US-East)</option>
-        <option value="us-gov-west-1">AWS GovCloud (US-West)</option>
       </select>
     </div>
 
     <div>
       <label for="ec2Select">EC2 Instance:</label><br>
-      <select id="ec2Select" disabled>
-        <option>🔄 Loading...</option>
-      </select>
+      <button id="openEc2Modal">📋 Select EC2 Instances</button>
+      <select id="ec2Select"></select>
     </div>
 
   </div>
   
-  <div style="display: flex; justify-content: center; margin-top: 10px; margin-bottom: 20px;">
+  <div style="display: flex; justify-content: center; margin-top: 5px; margin-bottom: 10px;">
     <button id="connect" style="background-color: #007acc; color: white; font-weight: bold; border: none;">➕ Start SSM Session</button>
   </div>
 
@@ -182,8 +256,23 @@
     🔄 Loading AWS Profiles...
   </div>
 
+  <div id="ec2LoadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); color:white; padding:15px 25px; border-radius:5px; font-size:16px; z-index:9998; box-shadow:0 2px 10px rgba(0,0,0,0.5);">
+    🔄 Loading EC2 instances...
+  </div>
+
   <div id="tabsBar"></div>
-  <div id="terminalTabs" class="terminal-container" style="height: 420px; max-width: 100%;"></div>
+  <div id="terminalTabs" class="terminal-container"></div>
+
+  <div id="ec2Modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:9999;">
+    <div style="background:#1e1e1e; padding:20px; border-radius:8px; width:700px; max-height:80vh; overflow:auto;">
+      <h3>Select EC2 Instances</h3>
+      <div id="ec2MultiselectContainer" style="margin-top:10px; display: none;"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button id="applyEc2Selection">✔ Apply</button>
+        <button id="cancelEc2Selection">❌ Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <div id="profileModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:9999;">
     <div style="background:#1e1e1e; padding:20px; border-radius:8px; width:400px;">
@@ -207,7 +296,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
   <script src="renderer.js"></script>
-  <p style="margin-top: 20px; font-size: 12px; color: #aaa; text-align: center;">
+  <p style="margin-top: 5px; margin-bottom: 5px; font-size: 12px; color: #aaa; text-align: center;">
     Created by E.P. – Footage IT @ Hudl
   </p>
 </body>
