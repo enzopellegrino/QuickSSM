@@ -97,8 +97,15 @@ function loadEc2Instances(profile, region) {
       const option = document.createElement('option');
       option.textContent = 'No instances found';
       option.disabled = true;
+      option.selected = true;
       ec2Select.appendChild(option);
     } else {
+      const placeholder = document.createElement('option');
+      placeholder.textContent = 'Select an instance';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      ec2Select.appendChild(placeholder);
+
       data.forEach(([id, name]) => {
         const option = document.createElement('option');
         option.value = id;
