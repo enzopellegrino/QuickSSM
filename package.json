@@ -1,0 +1,19 @@
+{
+  "name": "aws-connect-launcher",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "rebuild": "electron-rebuild"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-rebuild": "^3.2.9"
+  },
+  "dependencies": {
+    "ini": "^5.0.0",
+    "node-pty": "^1.0.0",
+    "xterm": "^5.3.0"
+  }
+}
