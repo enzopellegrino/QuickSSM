@@ -1,0 +1,14 @@
+# Node modules
+node_modules/
+
+# Electron build
+dist/
+build/
+
+# Mac
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
