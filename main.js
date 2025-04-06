@@ -8,8 +8,8 @@ const sessions = {}; // sessionId -> ptyProcess
 
 function createWindow () {
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 700,
+    width: 1280,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'src/renderer.js'),
       contextIsolation: false,

@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>HudlOps - AWS SSM Manager</title>
+  <title>OPS</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
   <style>
     body {
@@ -110,55 +110,72 @@
   </style>
 </head>
 <body>
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-    <h1 style="margin: 0;">HudlOps - AWS SSM Manager</h1>
-    <img src="logo.png" alt="HudlOps Logo" style="height: 50px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <img src="logo.png" alt="HudlOps Logo" style="height: 50px;">
+      <h1 style="margin: 0;">OPS</h1>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button id="setupSession">🧩 Setup SSO Session</button>
+      <button id="discoverProfiles">🔍 Discover AWS Profiles</button>
+      <button id="loadEc2">🔄 Load EC2 Instances</button>
+    </div>
   </div>
 
-  <label>Select AWS Profile:</label>
-  <select id="profileSelect"></select>
-  <button id="setupSession">🧩 Setup SSO Session</button>
-  <button id="discoverProfiles">🔍 Discover AWS Profiles</button>
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 20px;">
+    <div>
+      <label for="profileSelect">AWS Profile:</label><br>
+      <select id="profileSelect"></select>
+    </div>
 
-  <br><br>
+    <div>
+      <label for="regionSelect">Region:</label><br>
+      <select id="regionSelect">
+        <option value="us-east-1">US East (N. Virginia)</option>
+        <option value="us-east-2">US East (Ohio)</option>
+        <option value="us-west-1">US West (N. California)</option>
+        <option value="us-west-2">US West (Oregon)</option>
+        <option value="af-south-1">Africa (Cape Town)</option>
+        <option value="ap-east-1">Asia Pacific (Hong Kong)</option>
+        <option value="ap-south-1">Asia Pacific (Mumbai)</option>
+        <option value="ap-south-2">Asia Pacific (Hyderabad)</option>
+        <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+        <option value="ap-southeast-2">Asia Pacific (Sydney)</option>
+        <option value="ap-southeast-3">Asia Pacific (Jakarta)</option>
+        <option value="ap-southeast-4">Asia Pacific (Melbourne)</option>
+        <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
+        <option value="ap-northeast-2">Asia Pacific (Seoul)</option>
+        <option value="ap-northeast-3">Asia Pacific (Osaka)</option>
+        <option value="ca-central-1">Canada (Central)</option>
+        <option value="eu-central-1">Europe (Frankfurt)</option>
+        <option value="eu-central-2">Europe (Zurich)</option>
+        <option value="eu-north-1">Europe (Stockholm)</option>
+        <option value="eu-south-1">Europe (Milan)</option>
+        <option value="eu-south-2">Europe (Spain)</option>
+        <option value="eu-west-1" selected>Europe (Ireland)</option>
+        <option value="eu-west-2">Europe (London)</option>
+        <option value="eu-west-3">Europe (Paris)</option>
+        <option value="il-central-1">Israel (Tel Aviv)</option>
+        <option value="me-central-1">Middle East (UAE)</option>
+        <option value="me-south-1">Middle East (Bahrain)</option>
+        <option value="sa-east-1">South America (São Paulo)</option>
+        <option value="us-gov-east-1">AWS GovCloud (US-East)</option>
+        <option value="us-gov-west-1">AWS GovCloud (US-West)</option>
+      </select>
+    </div>
 
-  <label>Select EC2 Instance:</label>
-  <select id="ec2Select"></select>
-  <label for="regionSelect">Region:</label>
-  <select id="regionSelect">
-    <option value="us-east-1">US East (N. Virginia)</option>
-    <option value="us-east-2">US East (Ohio)</option>
-    <option value="us-west-1">US West (N. California)</option>
-    <option value="us-west-2">US West (Oregon)</option>
-    <option value="af-south-1">Africa (Cape Town)</option>
-    <option value="ap-east-1">Asia Pacific (Hong Kong)</option>
-    <option value="ap-south-1">Asia Pacific (Mumbai)</option>
-    <option value="ap-south-2">Asia Pacific (Hyderabad)</option>
-    <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
-    <option value="ap-southeast-2">Asia Pacific (Sydney)</option>
-    <option value="ap-southeast-3">Asia Pacific (Jakarta)</option>
-    <option value="ap-southeast-4">Asia Pacific (Melbourne)</option>
-    <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
-    <option value="ap-northeast-2">Asia Pacific (Seoul)</option>
-    <option value="ap-northeast-3">Asia Pacific (Osaka)</option>
-    <option value="ca-central-1">Canada (Central)</option>
-    <option value="eu-central-1">Europe (Frankfurt)</option>
-    <option value="eu-central-2">Europe (Zurich)</option>
-    <option value="eu-north-1">Europe (Stockholm)</option>
-    <option value="eu-south-1">Europe (Milan)</option>
-    <option value="eu-south-2">Europe (Spain)</option>
-    <option value="eu-west-1" selected>Europe (Ireland)</option>
-    <option value="eu-west-2">Europe (London)</option>
-    <option value="eu-west-3">Europe (Paris)</option>
-    <option value="il-central-1">Israel (Tel Aviv)</option>
-    <option value="me-central-1">Middle East (UAE)</option>
-    <option value="me-south-1">Middle East (Bahrain)</option>
-    <option value="sa-east-1">South America (São Paulo)</option>
-    <option value="us-gov-east-1">AWS GovCloud (US-East)</option>
-    <option value="us-gov-west-1">AWS GovCloud (US-West)</option>
-  </select>
-  <button id="loadEc2">🔄 Load EC2 Instances</button>
-  <button id="connect">➕ Start SSM Session</button>
+    <div>
+      <label for="ec2Select">EC2 Instance:</label><br>
+      <select id="ec2Select" disabled>
+        <option>🔄 Loading...</option>
+      </select>
+    </div>
+
+  </div>
+  
+  <div style="display: flex; justify-content: center; margin-top: 10px; margin-bottom: 20px;">
+    <button id="connect" style="background-color: #007acc; color: white; font-weight: bold; border: none;">➕ Start SSM Session</button>
+  </div>
 
   <div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:white; font-size:18px; text-align:center; padding-top:20%; z-index:10000;">
     🔄 Loading AWS Profiles...

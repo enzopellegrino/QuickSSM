@@ -57,33 +57,58 @@ function loadProfiles() {
 
     select.appendChild(option);
   });
+
+  // Carica istanze EC2
+  loadEc2Instances(select.value, document.getElementById('regionSelect').value || 'us-east-1');
+  select.addEventListener('change', () => {
+    loadEc2Instances(select.value, document.getElementById('regionSelect').value || 'us-east-1');
+  });
+  document.getElementById('regionSelect').addEventListener('change', () => {
+    const profile = document.getElementById('profileSelect').value;
+    const region = document.getElementById('regionSelect').value || 'us-east-1';
+    if (profile) loadEc2Instances(profile, region);
+  });
+
+  document.getElementById('loadEc2').addEventListener('click', () => {
+    const profile = document.getElementById('profileSelect').value;
+    const region = document.getElementById('regionSelect').value || 'us-east-1';
+    if (!profile) return alert("Please select a profile first.");
+    loadEc2Instances(profile, region);
+  });
 }
 
-// Carica istanze EC2
-document.getElementById('loadEc2').addEventListener('click', () => {
-  const profile = document.getElementById('profileSelect').value;
+function loadEc2Instances(profile, region) {
   const ec2Select = document.getElementById('ec2Select');
-  ec2Select.innerHTML = '<option>Caricamento...</option>';
+  ec2Select.disabled = true;
+  ec2Select.innerHTML = '<option>🔄 Loading instances...</option>';
 
   const { exec } = require('child_process');
-  const region = document.getElementById('regionSelect').value || 'us-east-1';
   
   exec(`aws ec2 describe-instances --profile ${profile} --region ${region} --query "Reservations[].Instances[].[InstanceId, Tags[?Key=='Name']|[0].Value]" --output json`, (error, stdout) => {
     if (error) {
       document.getElementById('loadingOverlay').style.display = 'none';
       alert(`Errore caricamento EC2: ${error.message}`);
+      document.getElementById('ec2Select').disabled = false;
       return;
     }
     const data = JSON.parse(stdout);
     ec2Select.innerHTML = '';
-    data.forEach(([id, name]) => {
+    if (data.length === 0) {
       const option = document.createElement('option');
-      option.value = id;
-      option.textContent = name ? `${name} (${id})` : id;
+      option.textContent = 'No instances found';
+      option.disabled = true;
       ec2Select.appendChild(option);
-    });
+    } else {
+      data.forEach(([id, name]) => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = name ? `${name} (${id})` : id;
+        ec2Select.appendChild(option);
+      });
+    }
+    document.getElementById('ec2Select').disabled = false;
   });
-});
+}
 
 // Avvia terminale
 document.getElementById('connect').addEventListener('click', () => {
@@ -92,7 +117,8 @@ document.getElementById('connect').addEventListener('click', () => {
   const instanceId = ec2Select.value;
   if (!instanceId) return alert('Seleziona un\'istanza EC2');
 
-  const label = ec2Select.selectedOptions[0].textContent;
+  const fullLabel = ec2Select.selectedOptions[0].textContent;
+  const label = fullLabel.replace(/\s*\([^)]+\)$/, '').trim(); // removes ID from "Name (i-12345)"
   const sessionId = `ssm-${sessionCounter++}`;
 
   // Crea tab
@@ -248,7 +274,7 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
 
   if (!accessToken) {
     document.getElementById('loadingOverlay').style.display = 'none';
-    alert("Nessun token valido trovato. Fai login con SSO prima.");
+    alert("❌ No valid SSO session found.\n\nPlease click on '🧩 Setup SSO Session' and complete login via browser.");
     return;
   }
 
