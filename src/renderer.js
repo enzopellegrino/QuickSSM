@@ -110,7 +110,16 @@ function loadEc2Instances(profile, region) {
     
     if (error) {
       document.getElementById('loadingOverlay').style.display = 'none';
-      alert(`Errore caricamento EC2: ${error.message}`);
+      document.getElementById('ec2LoadingSpinner').style.display = 'none';
+
+      const errMsg = error.message || '';
+      if (errMsg.includes('Token has expired') || errMsg.includes('refresh failed') || errMsg.includes('access credentials')) {
+        const modalText = "❌ Your AWS SSO session has expired or is invalid.\n\nPlease click on '🧩 Setup SSO Session' and complete the login again.";
+        document.getElementById('errorModalText').textContent = modalText;
+        document.getElementById('errorModal').style.display = 'flex';
+      } else {
+        alert(`Errore caricamento EC2: ${error.message}`);
+      }
       return;
     }
     const data = JSON.parse(stdout);
