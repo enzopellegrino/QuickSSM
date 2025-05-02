@@ -3,17 +3,96 @@
   "version": "1.0.0",
   "description": "HudlOps - AWS SSM Manager for EC2 instances",
   "main": "main.js",
+  "build": {
+    "appId": "com.hudl.ops",
+    "productName": "HudlOps",
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "src/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "category": "public.app-category.developer-tools",
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "title": "HudlOps",
+      "icon": "src/icon.png",
+      "background": "src/icon.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "src/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "src/icon.png",
+      "category": "Development"
+    },
+    "files": [
+      "main.js",
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "build/entitlements.mac.plist"
+    ],
+    "asarUnpack": [
+      "node_modules/node-pty/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "src/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "protocols": [
+      {
+        "name": "HudlOps",
+        "schemes": [
+          "hudlops"
+        ]
+      }
+    ]
+  },
   "scripts": {
     "start": "electron .",
-    "rebuild": "electron-rebuild"
+    "rebuild": "electron-rebuild",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:mac-sign": "CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --mac --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:linux": "electron-builder --linux --publish never",
+    "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
     "electron": "^29.0.0",
+    "electron-builder": "^26.0.12",
     "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
+    "@aws-sdk/client-ec2": "^3.800.0",
+    "@aws-sdk/client-ssm": "^3.799.0",
+    "@aws-sdk/client-sts": "^3.799.0",
+    "@aws-sdk/credential-provider-ini": "^3.799.0",
     "ini": "^5.0.0",
     "node-pty": "^1.0.0",
+    "ws": "^8.18.1",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
   }
