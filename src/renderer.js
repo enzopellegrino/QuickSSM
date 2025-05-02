@@ -7,35 +7,35 @@ const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { execSync } = require('child_process');
 
-// Funzione per determinare il percorso completo dell'AWS CLI
+// Function to determine the full path of AWS CLI
 function getAwsPath() {
-  // Percorsi comuni dove può trovarsi l'eseguibile AWS
+  // Common paths where the AWS executable might be found
   const commonPaths = [
     '/usr/local/bin/aws',
     '/opt/homebrew/bin/aws',
     '/usr/bin/aws',
     '/bin/aws',
-    // Aggiungi il percorso in cui l'utente potrebbe avere installato aws tramite pip
+    // Add the path where the user might have installed aws via pip
     `${os.homedir()}/.local/bin/aws`
   ];
   
-  // Verifica se l'AWS CLI esiste in uno dei percorsi comuni
+  // Check if AWS CLI exists in one of the common paths
   for (const p of commonPaths) {
     if (fs.existsSync(p)) {
-      console.log('AWS CLI trovato in:', p);
+      console.log('AWS CLI found at:', p);
       return p;
     }
   }
   
-  // Se non trovato nei percorsi comuni, prova a usare 'which'
+  // If not found in common paths, try to use 'which'
   try {
     const awsPath = execSync('which aws', { encoding: 'utf8' }).trim();
-    console.log('AWS CLI trovato tramite which:', awsPath);
+    console.log('AWS CLI found via which:', awsPath);
     return awsPath;
   } catch (e) {
     console.log('Error finding AWS CLI path with which:', e);
     
-    // Ultimo tentativo: cerca aws nel PATH
+    // Last attempt: search aws in PATH
     try {
       const PATH = process.env.PATH || '';
       const pathDirs = PATH.split(':');
@@ -43,7 +43,7 @@ function getAwsPath() {
       for (const dir of pathDirs) {
         const possiblePath = path.join(dir, 'aws');
         if (fs.existsSync(possiblePath)) {
-          console.log('AWS CLI trovato in PATH:', possiblePath);
+          console.log('AWS CLI found in PATH:', possiblePath);
           return possiblePath;
         }
       }
@@ -51,12 +51,12 @@ function getAwsPath() {
       console.log('Error searching AWS CLI in PATH:', pathError);
     }
     
-    // Se non è possibile trovarlo, usa una versione di ripiego
-    return 'aws'; // Fallback al comando generico
+    // If it can't be found, use a fallback version
+    return 'aws'; // Fallback to the generic command
   }
 }
 
-// Memorizza il percorso dell'AWS CLI
+// Store the AWS CLI path
 const awsPath = getAwsPath();
 console.log('Using AWS CLI path:', awsPath);
 
@@ -66,7 +66,7 @@ const tabsBar = document.getElementById('tabsBar');
 const terminals = {};
 const sessions = {};
 
-// Carica profili AWS
+// Load AWS profiles
 function loadProfiles() {
   const configPath = path.join(os.homedir(), '.aws', 'config');
   const credsPath = path.join(os.homedir(), '.aws', 'credentials');
@@ -112,7 +112,7 @@ function loadProfiles() {
     select.appendChild(option);
   });
 
-  // Carica istanze EC2
+  // Load EC2 instances
   loadEc2Instances(select.value, document.getElementById('regionSelect').value || 'us-east-1');
   select.addEventListener('change', () => {
     loadEc2Instances(select.value, document.getElementById('regionSelect').value || 'us-east-1');
@@ -135,13 +135,13 @@ function loadProfiles() {
         alert("Please select an AWS profile first.");
         return;
       }
-      // Mostra lo spinner prima di iniziare il caricamento
+      // Show spinner before starting the loading process
       document.getElementById('ec2LoadingSpinner').style.display = 'block';
       loadEc2Instances(profile, region);
     };
   }
   
-  // Forza un caricamento iniziale
+  // Force an initial loading
   const initialProfile = document.getElementById('profileSelect')?.value;
   const initialRegion = document.getElementById('regionSelect')?.value || 'us-east-1';
   if (initialProfile) {
@@ -149,12 +149,12 @@ function loadProfiles() {
   }
 }
 
-// Sostituisce la funzione loadEc2Instances con una versione che utilizza AWS SDK
+// Replace the loadEc2Instances function with a version that uses AWS SDK
 async function loadEc2Instances(profile, region) {
   const ec2Container = document.getElementById('ec2MultiselectContainer');
   ec2Container.innerHTML = '🔄 Loading instances...';
   
-  // Mostra lo spinner durante il caricamento
+  // Show spinner during loading
   document.getElementById('ec2LoadingSpinner').style.display = 'block';
 
   try {
@@ -171,7 +171,7 @@ async function loadEc2Instances(profile, region) {
 
     const result = await client.send(new DescribeInstancesCommand({}));
 
-    // Nascondi lo spinner quando il caricamento è completato
+    // Hide spinner when loading is complete
     document.getElementById('ec2LoadingSpinner').style.display = 'none';
 
     const instances = [];
@@ -244,7 +244,7 @@ async function loadEc2Instances(profile, region) {
       document.getElementById('errorModalText').textContent = modalText;
       document.getElementById('errorModal').style.display = 'flex';
     } else {
-      alert(`Errore caricamento EC2: ${errMsg}`);
+      alert(`Error loading EC2: ${errMsg}`);
     }
   }
 }
@@ -279,7 +279,7 @@ document.getElementById('applyEc2Selection').addEventListener('click', () => {
 
   const selectedIds = selectedInstances.map(i => i.id);
 
-  // Chiude sessioni non selezionate
+  // Close unselected sessions
   openSessions.forEach(({ sessionId, instanceId }) => {
     if (!selectedIds.includes(instanceId)) {
       ipcRenderer.send('terminate-session', sessionId);
@@ -289,7 +289,7 @@ document.getElementById('applyEc2Selection').addEventListener('click', () => {
     }
   });
 
-  // Apre nuove sessioni solo se non già aperte
+  // Open new sessions only if not already open
   selectedInstances.forEach(({ id, label }) => {
     if (openSessions.find(s => s.instanceId === id)) return;
 
@@ -299,7 +299,7 @@ document.getElementById('applyEc2Selection').addEventListener('click', () => {
     tab.id = `tab-${sessionId}`;
     tab.setAttribute('data-instance-id', id);
     
-    // Mostra solo il nome dell'istanza nella tab
+    // Show only the instance name in the tab
     const displayName = label || 'Unnamed Instance';
     tab.innerHTML = `${displayName}<button>❌</button>`;
     
@@ -341,18 +341,18 @@ document.getElementById('applyEc2Selection').addEventListener('click', () => {
     });
 
     ipcRenderer.on(`terminal-data-${sessionId}`, (_, data) => {
-      // Ignora i messaggi relativi a zsh
+      // Ignore messages related to zsh
       if (data.includes('The default interactive shell is now zsh')) {
         return;
       }
       
-      // Ignora gli errori di permessi per TerminateSession che non bloccano il funzionamento
+      // Ignore permission errors for TerminateSession that do not block functionality
       if (data.includes('AccessDeniedException') && data.includes('ssm:TerminateSession')) {
-        console.warn('Avviso: Permesso mancante ssm:TerminateSession - La sessione potrebbe non chiudersi correttamente');
+        console.warn('Warning: Missing permission ssm:TerminateSession - The session may not close properly');
         return;
       }
       
-      // Verifica per istanze non connesse a SSM
+      // Check for instances not connected to SSM
       if (data.includes('TargetNotConnected')) {
         document.getElementById('errorModalText').textContent =
           "❌ Unable to connect: This EC2 instance is not connected to AWS Systems Manager.\n\nPlease check:\n• SSM Agent is running\n• Correct IAM Role\n• Network access to SSM endpoint";
@@ -360,7 +360,7 @@ document.getElementById('applyEc2Selection').addEventListener('click', () => {
         return;
       }
       
-      // Filtra le linee di output per migliorare la leggibilità
+      // Filter output lines for better readability
       const lines = data.split('\n').filter(line =>
         !line.includes('aws ssm') &&
         !line.includes('Starting session with SessionId') &&
@@ -394,13 +394,13 @@ document.getElementById('applyEc2Selection').addEventListener('click', () => {
   });
 });
 
-// Cambio tab visivamente
+// Visually switch tabs
 function switchTab(sessionId) {
-  // Reset visivo
+  // Reset visuals
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.terminal-container > div').forEach(div => div.classList.remove('active'));
 
-  // Attiva selezionata
+  // Activate selected
   const activeTab = document.getElementById(`tab-${sessionId}`);
   const activeTerminal = document.getElementById(`terminal-${sessionId}`);
   if (activeTab && activeTerminal) {
@@ -433,10 +433,10 @@ document.getElementById('setupSession').addEventListener('click', () => {
   const { exec } = require('child_process');
   exec(`${awsPath} sso login --sso-session ${sessionName}`, (error) => {
     if (error) {
-      alert(`Errore durante il login SSO: ${error.message}`);
+      alert(`Error during SSO login: ${error.message}`);
       return;
     }
-    alert(`Sessione SSO '${sessionName}' configurata e autenticata con successo.`);
+    alert(`SSO session '${sessionName}' successfully configured and authenticated.`);
     loadProfiles();
   });
 });
@@ -462,7 +462,7 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
     }
   } catch (err) {
     document.getElementById('loadingOverlay').style.display = 'none';
-    alert("Errore nel recupero del token SSO: " + err.message);
+    alert("Error retrieving SSO token: " + err.message);
     return;
   }
 
@@ -538,7 +538,7 @@ document.getElementById('discoverProfiles').addEventListener('click', () => {
       output: 'json'
     };
     fs.writeFileSync(configPath, ini.stringify(config));
-    alert(`Profilo '${profileName}' creato con successo.`);
+    alert(`Profile '${profileName}' successfully created.`);
     loadProfiles();
     document.getElementById('profileModal').style.display = 'none';
   };
@@ -579,15 +579,15 @@ document.getElementById('connect').addEventListener('click', () => {
     return alert('Please select both a profile and an EC2 instance.');
   }
 
-  // Mostra un indicatore di caricamento
-  document.getElementById('ec2LoadingSpinner').textContent = '🔄 Avvio sessione SSM...';
+  // Show a loading indicator
+  document.getElementById('ec2LoadingSpinner').textContent = '🔄 Starting SSM session...';
   document.getElementById('ec2LoadingSpinner').style.display = 'block';
 
-  // Estrai solo il nome dell'istanza senza l'ID
+  // Extract only the instance name without the ID
   const fullLabel = document.querySelector(`#ec2Select option[value="${instanceId}"]`)?.textContent || instanceId;
   let displayName = fullLabel;
   
-  // Se l'etichetta contiene l'ID tra parentesi, estrai solo il nome
+  // If the label contains the ID in parentheses, extract only the name
   if (fullLabel.includes('(')) {
     displayName = fullLabel.substring(0, fullLabel.lastIndexOf('(')).trim();
   }
@@ -628,32 +628,32 @@ document.getElementById('connect').addEventListener('click', () => {
   terminals[sessionId] = term;
   term._fitAddon = fitAddon;
 
-  // Scrivi un messaggio di avvio
-  term.write('Avvio sessione SSM...\r\n');
+  // Write a startup message
+  term.write('Starting SSM session...\r\n');
 
-  // Passa il percorso AWS all'IPC
+  // Pass the AWS path to IPC
   ipcRenderer.send('start-ssm-session', {
     profile,
     instanceId,
     sessionId,
     region,
-    awsPath  // Passa il percorso dell'AWS CLI rilevato
+    awsPath  // Pass the detected AWS CLI path
   });
 
-  // Gestisco l'output del terminale
+  // Handle terminal output
   let connectionTimeout = setTimeout(() => {
     document.getElementById('ec2LoadingSpinner').style.display = 'none';
-    term.write('\r\n\x1b[31mSessione SSM non risponde. Possibili cause:\r\n');
-    term.write('- Credenziali AWS scadute\r\n');
-    term.write('- Istanza EC2 non raggiungibile\r\n');
-    term.write('- Problemi di rete\r\n');
-    term.write('Prova a ricaricare i profili AWS o verificare lo stato dell\'istanza.\x1b[0m\r\n');
-  }, 20000); // 20 secondi di timeout
+    term.write('\r\n\x1b[31mSSM session not responding. Possible causes:\r\n');
+    term.write('- Expired AWS credentials\r\n');
+    term.write('- EC2 instance not reachable\r\n');
+    term.write('- Network issues\r\n');
+    term.write('Try reloading AWS profiles or checking the instance status.\x1b[0m\r\n');
+  }, 20000); // 20 seconds timeout
 
   let hasReceivedData = false;
 
   ipcRenderer.on(`terminal-data-${sessionId}`, (_, data) => {
-    // Nascondi spinner dopo aver ricevuto dati
+    // Hide spinner after receiving data
     document.getElementById('ec2LoadingSpinner').style.display = 'none';
     
     if (!hasReceivedData) {
@@ -661,18 +661,18 @@ document.getElementById('connect').addEventListener('click', () => {
       clearTimeout(connectionTimeout);
     }
     
-    // Ignora i messaggi relativi a zsh
+    // Ignore messages related to zsh
     if (data.includes('The default interactive shell is now zsh')) {
       return;
     }
     
-    // Ignora gli errori di permessi per TerminateSession che non bloccano il funzionamento
+    // Ignore permission errors for TerminateSession that do not block functionality
     if (data.includes('AccessDeniedException') && data.includes('ssm:TerminateSession')) {
-      console.warn('Avviso: Permesso mancante ssm:TerminateSession - La sessione potrebbe non chiudersi correttamente');
+      console.warn('Warning: Missing permission ssm:TerminateSession - The session may not close properly');
       return;
     }
     
-    // Verifica per istanze non connesse a SSM
+    // Check for instances not connected to SSM
     if (data.includes('TargetNotConnected')) {
       document.getElementById('errorModalText').textContent =
         "❌ Unable to connect: This EC2 instance is not connected to AWS Systems Manager.\n\nPlease check:\n• SSM Agent is running\n• Correct IAM Role\n• Network access to SSM endpoint";
@@ -680,7 +680,7 @@ document.getElementById('connect').addEventListener('click', () => {
       return;
     }
     
-    // Filtra le linee di output per migliorare la leggibilità
+    // Filter output lines for better readability
     const lines = data.split('\n').filter(line =>
       !line.includes('aws ssm') &&
       !line.includes('Starting session with SessionId') &&
@@ -693,15 +693,15 @@ document.getElementById('connect').addEventListener('click', () => {
     }
   });
 
-  // Gestione degli input utente
+  // Handle user input
   term.onData(data => {
     ipcRenderer.send(`terminal-input-${sessionId}`, data);
   });
 
-  // Gestione dell'evento di uscita dal terminale
+  // Handle terminal exit event
   ipcRenderer.on(`terminal-exit-${sessionId}`, () => {
     console.log(`Terminal session ${sessionId} exited`);
-    // Non rimuoviamo immediatamente la tab per permettere all'utente di vedere eventuali errori
+    // Do not immediately remove the tab to allow the user to see any errors
   });
 
   tab.addEventListener('click', (e) => {

@@ -5,19 +5,19 @@ const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const { SsmSession } = require('./src/aws-ssm-api');
 
-// Definisci un percorso AWS predefinito
+// Define a default AWS path
 const DEFAULT_AWS_PATH = '/Users/enzo.pellegrino/homebrew/bin/aws';
 
-// Funzione per trovare il percorso di AWS CLI
+// Function to find the AWS CLI path
 function findAwsCliPath() {
   try {
-    // Controlla se esiste il percorso predefinito
+    // Check if the default path exists
     if (fs.existsSync(DEFAULT_AWS_PATH)) {
-      console.log('AWS CLI trovato in:', DEFAULT_AWS_PATH);
+      console.log('AWS CLI found at:', DEFAULT_AWS_PATH);
       return DEFAULT_AWS_PATH;
     }
     
-    // Altri percorsi comuni su macOS
+    // Other common paths on macOS
     const macPaths = [
       '/usr/local/bin/aws',
       '/opt/homebrew/bin/aws',
@@ -28,12 +28,12 @@ function findAwsCliPath() {
     
     for (const p of macPaths) {
       if (fs.existsSync(p)) {
-        console.log('AWS CLI trovato in:', p);
+        console.log('AWS CLI found at:', p);
         return p;
       }
     }
     
-    // Prova a rilevare il percorso tramite which/where
+    // Try to detect the path via which/where
     try {
       let awsPath;
       if (process.platform === 'win32') {
@@ -43,29 +43,29 @@ function findAwsCliPath() {
       }
       
       if (awsPath && fs.existsSync(awsPath)) {
-        console.log('AWS CLI trovato tramite which/where:', awsPath);
+        console.log('AWS CLI found via which/where:', awsPath);
         return awsPath;
       }
     } catch (e) {
-      console.log('Impossibile trovare AWS CLI tramite which/where');
+      console.log('Unable to find AWS CLI via which/where');
     }
     
-    // Fallback: usa il comando aws senza percorso
+    // Fallback: use the aws command without path
     return 'aws';
   } catch (error) {
-    console.warn('Errore nella ricerca del percorso AWS CLI:', error);
-    return 'aws';  // Fallback al comando aws di base
+    console.warn('Error while searching for AWS CLI path:', error);
+    return 'aws';  // Fallback to basic aws command
   }
 }
 
-// Trova il percorso AWS CLI una volta all'avvio
+// Find the AWS CLI path once at startup
 const AWS_CLI_PATH = findAwsCliPath();
-console.log('Utilizzando AWS CLI path:', AWS_CLI_PATH);
+console.log('Using AWS CLI path:', AWS_CLI_PATH);
 
 let mainWindow;
-const sessions = {}; // sessionId -> processo o oggetto di sessione
+const sessions = {}; // sessionId -> process or session object
 
-// Creo una nuova funzione di inizializzazione che controlla solo le credenziali AWS
+// Create a new initialization function that only checks AWS credentials
 async function checkAwsCredentials() {
   const { fromIni } = require('@aws-sdk/credential-provider-ini');
   const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
@@ -74,22 +74,22 @@ async function checkAwsCredentials() {
   const path = require('path');
 
   return new Promise((resolve) => {
-    // Verifica se il file di configurazione AWS esiste
+    // Check if the AWS configuration file exists
     const awsConfigPath = path.join(os.homedir(), '.aws', 'config');
     const awsCredsPath = path.join(os.homedir(), '.aws', 'credentials');
     
     if (!fs.existsSync(awsConfigPath) && !fs.existsSync(awsCredsPath)) {
-      console.warn('File di configurazione AWS non trovati');
+      console.warn('AWS configuration files not found');
       const result = dialog.showMessageBox({
         type: 'warning',
-        title: 'Configurazione AWS mancante',
-        message: 'I file di configurazione AWS non sono stati trovati',
-        detail: 'Per utilizzare questa applicazione:\n\n' +
-                '1. Apri il Terminale\n' +
-                '2. Esegui: aws configure\n' +
-                '   oppure: aws sso login\n' +
-                '3. Riavvia questa applicazione',
-        buttons: ['Continua comunque', 'Chiudi'],
+        title: 'AWS Configuration Missing',
+        message: 'AWS configuration files were not found',
+        detail: 'To use this application:\n\n' +
+                '1. Open Terminal\n' +
+                '2. Run: aws configure\n' +
+                '   or: aws sso login\n' +
+                '3. Restart this application',
+        buttons: ['Continue anyway', 'Close'],
         defaultId: 0
       });
       
@@ -104,10 +104,10 @@ async function checkAwsCredentials() {
       return;
     }
 
-    // Determina se esiste almeno un profilo che possiamo usare
-    // Prima, verifichiamo se esiste un file di credenziali o config
+    // Determine if there is at least one profile we can use
+    // First, we check if a credentials or config file exists
     try {
-      // Controlla se c'è almeno un profilo configurato
+      // Check if there is at least one configured profile
       let hasProfiles = false;
       
       if (fs.existsSync(awsConfigPath)) {
@@ -121,35 +121,35 @@ async function checkAwsCredentials() {
       }
       
       if (!hasProfiles) {
-        console.warn('Nessun profilo AWS trovato nei file di configurazione');
-        resolve(true); // Continua comunque
+        console.warn('No AWS profile found in configuration files');
+        resolve(true); // Continue anyway
         return;
       }
       
-      // A questo punto sappiamo che esiste almeno un profilo
-      console.log('Trovati profili AWS, l\'app dovrebbe funzionare correttamente');
+      // At this point we know that at least one profile exists
+      console.log('AWS profiles found, the app should work correctly');
       resolve(true);
     } catch (error) {
-      console.error('Errore durante la verifica dei profili AWS:', error);
-      resolve(true); // Continua comunque
+      console.error('Error while verifying AWS profiles:', error);
+      resolve(true); // Continue anyway
     }
   });
 }
 
-// Richiedi autorizzazioni terminal - rimane per compatibilità
+// Request terminal permissions - remains for compatibility
 async function requestTerminalPermissions() {
-  if (process.platform !== 'darwin') return true; // Solo per macOS
+  if (process.platform !== 'darwin') return true; // Only for macOS
   
   return new Promise((resolve) => {
-    // Verifica l'accesso al terminale con un comando semplice
+    // Verify terminal access with a simple command
     const testProcess = spawn('/bin/bash', ['-c', 'echo "Testing terminal access"']);
     
     testProcess.on('error', () => {
       dialog.showMessageBox({
         type: 'info',
-        title: 'Autorizzazioni richieste',
-        message: 'HudlOps potrebbe richiedere autorizzazioni per alcune funzionalità',
-        detail: 'Per alcune funzionalità opzionali, l\'app potrebbe richiedere autorizzazioni del terminale. Puoi continuare senza concederle.',
+        title: 'Permissions Required',
+        message: 'HudlOps may require permissions for some features',
+        detail: 'For some optional features, the app may require terminal permissions. You can continue without granting them.',
         buttons: ['OK'],
       });
       resolve(true);
@@ -170,7 +170,7 @@ function createWindow () {
       contextIsolation: false,
       nodeIntegration: true
     },
-    icon: path.join(__dirname, 'src/icon.png') // Imposta l'icona anche per la finestra
+    icon: path.join(__dirname, 'src/icon.png') // Set the icon for the window too
   });
 
   mainWindow.maximize();
@@ -178,7 +178,7 @@ function createWindow () {
 }
 
 app.whenReady().then(async () => {
-  // Verifica credenziali AWS all'avvio (molto più leggero)
+  // Verify AWS credentials at startup (much lighter)
   await checkAwsCredentials();
   await requestTerminalPermissions();
   
@@ -192,18 +192,18 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// Funzione per avviare una sessione SSM nel terminale di sistema (utilizzabile come fallback)
+// Function to start an SSM session in the system terminal (usable as fallback)
 function startNativeTerminalSession(event, { profile, instanceId, region, awsPath }) {
-  // Comando per avviare il terminale nativo
+  // Command to start the native terminal
   if (os.platform() === 'darwin') { // macOS
-    // Usa il percorso AWS individuato all'avvio o il parametro specificato
+    // Use the AWS path found at startup or the specified parameter
     const awsCliPath = awsPath || AWS_CLI_PATH;
-    // Costruisci un comando SSM sicuro con tutte le variabili d'ambiente necessarie
-    // Gestiamo correttamente le virgolette per evitare problemi con AppleScript
+    // Build a secure SSM command with all necessary environment variables
+    // Properly handle quotes to avoid issues with AppleScript
     const ssmCommand = `export AWS_PROFILE='${profile}' && export AWS_REGION='${region}' && ${awsCliPath} ssm start-session --target ${instanceId} --region ${region} --profile ${profile}`;
     
-    // Script AppleScript più robusto con un titolo personalizzato
-    // Usiamo virgolette singole per la stringa principale e doppie all'interno
+    // More robust AppleScript with a custom title
+    // Use single quotes for the main string and double quotes inside
     const script = `tell application "Terminal"
   activate
   do script "${ssmCommand.replace(/"/g, '\\"')}"
@@ -239,17 +239,17 @@ end tell`;
   } else { // Linux
     const { exec } = require('child_process');
     const awsCliPath = awsPath || AWS_CLI_PATH;
-    // Cerca un terminale disponibile su Linux
+    // Look for an available terminal on Linux
     const terminals = ['gnome-terminal', 'konsole', 'xterm', 'xfce4-terminal'];
     
-    // Comando da eseguire nel terminale
+    // Command to execute in the terminal
     const command = `${awsCliPath} ssm start-session --target ${instanceId} --region ${region} --profile ${profile}`;
     
-    // Funzione per trovare e aprire un terminale
+    // Function to find and open a terminal
     const findAndOpenTerminal = (index) => {
       if (index >= terminals.length) {
-        console.error('Nessun terminale trovato su Linux');
-        safeSend(event, 'native-terminal-error', { error: 'Nessun terminale supportato trovato' });
+        console.error('No terminal found on Linux');
+        safeSend(event, 'native-terminal-error', { error: 'No supported terminal found' });
         return;
       }
       
@@ -259,13 +259,13 @@ end tell`;
           let terminalCommand;
           
           if (terminal === 'gnome-terminal') {
-            terminalCommand = `gnome-terminal -- bash -c "echo 'Connessione SSM a ${instanceId}...'; ${command}; echo 'Sessione terminata. Premi un tasto per chiudere.'; read -n 1"`;
+            terminalCommand = `gnome-terminal -- bash -c "echo 'SSM Connection to ${instanceId}...'; ${command}; echo 'Session terminated. Press a key to close.'; read -n 1"`;
           } else if (terminal === 'konsole') {
-            terminalCommand = `konsole --noclose -e bash -c "echo 'Connessione SSM a ${instanceId}...'; ${command}; echo 'Sessione terminata. Premi un tasto per chiudere.'; read -n 1"`;
+            terminalCommand = `konsole --noclose -e bash -c "echo 'SSM Connection to ${instanceId}...'; ${command}; echo 'Session terminated. Press a key to close.'; read -n 1"`;
           } else if (terminal === 'xterm') {
-            terminalCommand = `xterm -hold -e "echo 'Connessione SSM a ${instanceId}...'; ${command}; echo 'Sessione terminata. Premi un tasto per chiudere.'; read -n 1"`;
+            terminalCommand = `xterm -hold -e "echo 'SSM Connection to ${instanceId}...'; ${command}; echo 'Session terminated. Press a key to close.'; read -n 1"`;
           } else if (terminal === 'xfce4-terminal') {
-            terminalCommand = `xfce4-terminal --hold -e "bash -c 'echo Connessione SSM a ${instanceId}...; ${command}; echo Sessione terminata. Premi un tasto per chiudere.; read -n 1'"`;
+            terminalCommand = `xfce4-terminal --hold -e "bash -c 'echo SSM Connection to ${instanceId}...; ${command}; echo Session terminated. Press a key to close.; read -n 1'"`;
           }
           
           exec(terminalCommand, (err) => {
@@ -287,59 +287,59 @@ end tell`;
   }
 }
 
-// Funzione di utilità per verificare se un WebContents è ancora valido
+// Utility function to check if a WebContents is still valid
 function isWebContentsValid(contents) {
   try {
-    // Se è stato distrutto, questa proprietà solleverà un'eccezione o sarà true
+    // If it has been destroyed, this property will raise an exception or be true
     return contents && !contents.isDestroyed();
   } catch (e) {
     return false;
   }
 }
 
-// Funzione sicura per inviare messaggi IPC
+// Safe function to send IPC messages
 function safeSend(event, channel, ...args) {
   try {
     if (event && event.sender && isWebContentsValid(event.sender)) {
       event.sender.send(channel, ...args);
     }
   } catch (error) {
-    console.warn(`Impossibile inviare messaggio su ${channel}: ${error.message}`);
+    console.warn(`Unable to send message on ${channel}: ${error.message}`);
   }
 }
 
-// Nuova gestione delle sessioni SSM utilizzando node-pty direttamente
+// New management of SSM sessions using node-pty directly
 ipcMain.on('start-ssm-session', async (event, { profile, instanceId, sessionId, region, awsPath }) => {
-  console.log(`Avvio sessione SSM per ${instanceId} con profilo ${profile} in regione ${region} usando node-pty`);
+  console.log(`Starting SSM session for ${instanceId} with profile ${profile} in region ${region} using node-pty`);
   
   try {
-    // Notifica iniziale
-    safeSend(event, `terminal-data-${sessionId}`, `\r\n\x1b[33mAvvio sessione SSM per ${instanceId}...\x1b[0m\r\n`);
+    // Initial notification
+    safeSend(event, `terminal-data-${sessionId}`, `\r\n\x1b[33mStarting SSM session for ${instanceId}...\x1b[0m\r\n`);
     
-    // Usa il percorso AWS individuato all'avvio o il parametro specificato
+    // Use the AWS path found at startup or the specified parameter
     const awsCliPath = awsPath || AWS_CLI_PATH;
-    console.log('Utilizzando percorso AWS CLI:', awsCliPath);
+    console.log('Using AWS CLI path:', awsCliPath);
     
-    // Crea un processo di terminale usando node-pty
+    // Create a terminal process using node-pty
     const pty = require('node-pty');
     const shell = process.platform === 'win32' ? 'powershell.exe' : 'bash';
     
-    // Costruisci il comando AWS SSM
+    // Build the AWS SSM command
     const ssmCommand = `${awsCliPath} ssm start-session --target ${instanceId} --region ${region} --profile ${profile}`;
     
-    // Ambienti di esecuzione
+    // Execution environments
     const env = {
       ...process.env,
       AWS_PROFILE: profile,
       AWS_REGION: region,
       TERM: 'xterm-color',
-      // Aggiungi tutti i percorsi comuni che possono contenere AWS CLI
+      // Add all common paths that might contain AWS CLI
       PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/opt/local/bin:' + 
             `${os.homedir()}/homebrew/bin:` +
             (process.env.HOME ? `${process.env.HOME}/.local/bin` : '')
     };
     
-    // Crea una sessione PTY che esegue il comando AWS SSM
+    // Create a PTY session that runs the AWS SSM command
     const ptyProcess = pty.spawn(shell, ['-c', ssmCommand], {
       name: 'xterm-color',
       cols: 80,
@@ -348,29 +348,29 @@ ipcMain.on('start-ssm-session', async (event, { profile, instanceId, sessionId, 
       cwd: process.env.HOME
     });
     
-    // Salva la sessione PTY
+    // Save the PTY session
     sessions[sessionId] = ptyProcess;
     
-    // Gestisci l'output del processo
+    // Handle the process output
     ptyProcess.onData(data => {
       safeSend(event, `terminal-data-${sessionId}`, data);
     });
     
-    // Gestisci la chiusura del processo
+    // Handle the process termination
     ptyProcess.onExit(({ exitCode }) => {
-      safeSend(event, `terminal-data-${sessionId}`, `\r\n\x1b[33mSessione terminata con codice ${exitCode}\x1b[0m\r\n`);
+      safeSend(event, `terminal-data-${sessionId}`, `\r\n\x1b[33mSession terminated with code ${exitCode}\x1b[0m\r\n`);
       safeSend(event, `terminal-exit-${sessionId}`);
       delete sessions[sessionId];
     });
     
-    // Imposta handler per l'input dell'utente
+    // Set handler for user input
     ipcMain.on(`terminal-input-${sessionId}`, (_, input) => {
       if (sessions[sessionId]) {
         sessions[sessionId].write(input);
       }
     });
     
-    // Imposta handler per il ridimensionamento del terminale
+    // Set handler for terminal resizing
     ipcMain.on(`terminal-resize-${sessionId}`, (_, { cols, rows }) => {
       if (sessions[sessionId]) {
         sessions[sessionId].resize(cols, rows);
@@ -378,17 +378,17 @@ ipcMain.on('start-ssm-session', async (event, { profile, instanceId, sessionId, 
     });
     
   } catch (error) {
-    console.error(`Errore generale nell'avvio della sessione SSM: ${error.message}`);
-    safeSend(event, `terminal-data-${sessionId}`, `\r\n\x1b[31mErrore nell'avvio della sessione SSM: ${error.message}\x1b[0m\r\n`);
+    console.error(`General error when starting the SSM session: ${error.message}`);
+    safeSend(event, `terminal-data-${sessionId}`, `\r\n\x1b[31mError starting the SSM session: ${error.message}\x1b[0m\r\n`);
     
-    // In caso di errore grave, offri l'opzione di aprire nel terminale nativo
+    // In case of a serious error, offer the option to open in the native terminal
     if (isWebContentsValid(event.sender)) {
       dialog.showMessageBox({
         type: 'error',
-        title: 'Errore sessione SSM',
-        message: 'Impossibile avviare la sessione SSM integrata',
-        detail: `Errore: ${error.message}\n\nVuoi provare ad aprire la sessione nel terminale di sistema?`,
-        buttons: ['Sì', 'No'],
+        title: 'SSM Session Error',
+        message: 'Unable to start integrated SSM session',
+        detail: `Error: ${error.message}\n\nDo you want to try opening the session in the system terminal?`,
+        buttons: ['Yes', 'No'],
         defaultId: 0
       }).then(result => {
         if (result.response === 0) {
@@ -401,19 +401,19 @@ ipcMain.on('start-ssm-session', async (event, { profile, instanceId, sessionId, 
   }
 });
 
-// Funzione di diagnosi per gli errori di connessione SSM
+// Diagnostic function for SSM connection errors
 async function diagnoseSsmError(profile, instanceId, region) {
-  console.log(`Diagnosi connessione SSM per ${instanceId} con profilo ${profile} in regione ${region}`);
+  console.log(`Diagnosing SSM connection for ${instanceId} with profile ${profile} in region ${region}`);
   
   const diagnosticResults = {
-    credenzialiValide: false,
-    istanzaConnessa: false,
-    permessiSufficienti: false,
-    dettagli: []
+    validCredentials: false,
+    instanceConnected: false,
+    sufficientPermissions: false,
+    details: []
   };
   
   try {
-    // Test delle credenziali AWS
+    // Test AWS credentials
     const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
     const { fromIni } = require('@aws-sdk/credential-provider-ini');
     
@@ -424,15 +424,15 @@ async function diagnoseSsmError(profile, instanceId, region) {
     
     try {
       const identity = await stsClient.send(new GetCallerIdentityCommand({}));
-      diagnosticResults.credenzialiValide = true;
-      diagnosticResults.dettagli.push(`✅ Credenziali valide: ${identity.Arn}`);
+      diagnosticResults.validCredentials = true;
+      diagnosticResults.details.push(`✅ Valid credentials: ${identity.Arn}`);
     } catch (credError) {
-      diagnosticResults.dettagli.push(`❌ Credenziali non valide: ${credError.message}`);
-      diagnosticResults.dettagli.push('   Prova a eseguire: aws sso login --profile ' + profile);
+      diagnosticResults.details.push(`❌ Invalid credentials: ${credError.message}`);
+      diagnosticResults.details.push('   Try running: aws sso login --profile ' + profile);
     }
     
-    if (diagnosticResults.credenzialiValide) {
-      // Verifica che l'istanza sia connessa a SSM
+    if (diagnosticResults.validCredentials) {
+      // Verify that the instance is connected to SSM
       const { SSMClient, DescribeInstanceInformationCommand } = require('@aws-sdk/client-ssm');
       
       const ssmClient = new SSMClient({
@@ -451,28 +451,28 @@ async function diagnoseSsmError(profile, instanceId, region) {
         }));
         
         if (response.InstanceInformationList && response.InstanceInformationList.length > 0) {
-          diagnosticResults.istanzaConnessa = true;
+          diagnosticResults.instanceConnected = true;
           const status = response.InstanceInformationList[0].PingStatus;
-          diagnosticResults.dettagli.push(`✅ Istanza connessa a SSM (Status: ${status})`);
+          diagnosticResults.details.push(`✅ Instance connected to SSM (Status: ${status})`);
         } else {
-          diagnosticResults.dettagli.push('❌ Istanza NON connessa a SSM. Verificare:');
-          diagnosticResults.dettagli.push('   - L\'agente SSM è in esecuzione sull\'istanza');
-          diagnosticResults.dettagli.push('   - L\'istanza ha accesso all\'endpoint SSM');
-          diagnosticResults.dettagli.push('   - L\'istanza ha un ruolo IAM appropriato');
+          diagnosticResults.details.push('❌ Instance NOT connected to SSM. Verify:');
+          diagnosticResults.details.push('   - The SSM agent is running on the instance');
+          diagnosticResults.details.push('   - The instance has access to the SSM endpoint');
+          diagnosticResults.details.push('   - The instance has an appropriate IAM role');
         }
       } catch (ssmError) {
         if (ssmError.name === 'AccessDeniedException') {
-          diagnosticResults.dettagli.push(`❌ Permessi insufficienti per verificare lo stato SSM: ${ssmError.message}`);
+          diagnosticResults.details.push(`❌ Insufficient permissions to verify SSM status: ${ssmError.message}`);
         } else {
-          diagnosticResults.dettagli.push(`❌ Errore durante la verifica dello stato SSM: ${ssmError.message}`);
+          diagnosticResults.details.push(`❌ Error while verifying SSM status: ${ssmError.message}`);
         }
       }
       
-      // Verifica i permessi per StartSession
+      // Check permissions for StartSession
       try {
         const { IAMClient, SimulatePrincipalPolicyCommand } = require('@aws-sdk/client-iam');
         
-        // Estraiamo l'ARN dell'identità per i test dei permessi
+        // Extract the identity ARN for permission tests
         const identityResponse = await stsClient.send(new GetCallerIdentityCommand({}));
         const principalArn = identityResponse.Arn;
         
@@ -481,7 +481,7 @@ async function diagnoseSsmError(profile, instanceId, region) {
           credentials: fromIni({ profile: profile }),
         });
         
-        // Test del permesso StartSession
+        // Test StartSession permission
         try {
           const simResponse = await iamClient.send(new SimulatePrincipalPolicyCommand({
             PolicySourceArn: principalArn,
@@ -492,39 +492,39 @@ async function diagnoseSsmError(profile, instanceId, region) {
           if (simResponse.EvaluationResults && 
               simResponse.EvaluationResults[0] && 
               simResponse.EvaluationResults[0].EvalDecision === 'allowed') {
-            diagnosticResults.permessiSufficienti = true;
-            diagnosticResults.dettagli.push('✅ Hai i permessi necessari per ssm:StartSession');
+            diagnosticResults.sufficientPermissions = true;
+            diagnosticResults.details.push('✅ You have the necessary permissions for ssm:StartSession');
           } else {
-            diagnosticResults.dettagli.push('❌ Permessi insufficienti per ssm:StartSession');
-            diagnosticResults.dettagli.push('   Il tuo ruolo IAM richiede almeno il permesso ssm:StartSession');
+            diagnosticResults.details.push('❌ Insufficient permissions for ssm:StartSession');
+            diagnosticResults.details.push('   Your IAM role requires at least the ssm:StartSession permission');
           }
         } catch (iamError) {
-          // Alcuni ruoli potrebbero non avere il permesso di simulare le policy
-          diagnosticResults.dettagli.push(`ℹ️  Impossibile verificare i permessi: ${iamError.message}`);
-          diagnosticResults.dettagli.push('   Questo è normale se stai usando credenziali temporanee');
+          // Some roles might not have permission to simulate policies
+          diagnosticResults.details.push(`ℹ️  Unable to verify permissions: ${iamError.message}`);
+          diagnosticResults.details.push('   This is normal if you are using temporary credentials');
         }
       } catch (identityError) {
-        diagnosticResults.dettagli.push(`ℹ️  Impossibile determinare l'identità per verificare i permessi`);
+        diagnosticResults.details.push(`ℹ️  Unable to determine identity to verify permissions`);
       }
     }
     
-    // Verifica la presenza e il funzionamento dell'AWS CLI
+    // Check for the presence and operation of the AWS CLI
     try {
       const { execSync } = require('child_process');
       const awsVersionTest = execSync('aws --version', { encoding: 'utf8' });
-      diagnosticResults.dettagli.push(`✅ AWS CLI trovato: ${awsVersionTest.trim()}`);
+      diagnosticResults.details.push(`✅ AWS CLI found: ${awsVersionTest.trim()}`);
     } catch (cliError) {
-      diagnosticResults.dettagli.push('❌ AWS CLI non trovato o non funzionante. Verificare che sia installato.');
+      diagnosticResults.details.push('❌ AWS CLI not found or not working. Verify that it is installed.');
     }
     
   } catch (error) {
-    diagnosticResults.dettagli.push(`❌ Errore durante la diagnosi: ${error.message}`);
+    diagnosticResults.details.push(`❌ Error during diagnosis: ${error.message}`);
   }
   
   return diagnosticResults;
 }
 
-// Gestiamo l'evento per avviare la diagnosi
+// Handle the event to start diagnosis
 ipcMain.on('diagnose-ssm-connection', async (event, { profile, instanceId, region }) => {
   try {
     const results = await diagnoseSsmError(profile, instanceId, region);
@@ -532,7 +532,7 @@ ipcMain.on('diagnose-ssm-connection', async (event, { profile, instanceId, regio
   } catch (error) {
     safeSend(event, 'diagnostic-results', { 
       error: error.message,
-      dettagli: ['Errore durante la diagnosi della connessione']
+      details: ['Error during connection diagnosis']
     });
   }
 });
@@ -540,7 +540,7 @@ ipcMain.on('diagnose-ssm-connection', async (event, { profile, instanceId, regio
 // Termination
 ipcMain.on('terminate-session', async (event, sessionId) => {
   if (sessions[sessionId]) {
-    console.log(`Terminazione sessione ${sessionId}`);
+    console.log(`Terminating session ${sessionId}`);
     
     // Check if it's a PTY session
     if (sessions[sessionId].kill) {
