@@ -32,6 +32,8 @@ class SsmSession {
     this.client = null;
     this.isConnected = false;
     this.pingInterval = null;
+    this.keepAliveInterval = null; // Nuovo timer per il keep-alive dei comandi
+    this.lastActivityTimestamp = Date.now(); // Timestamp dell'ultima attività
     
     // Genera un ID cliente univoco
     this.clientId = crypto.randomUUID();
@@ -71,6 +73,9 @@ class SsmSession {
       
       // Stabilisci la connessione WebSocket
       await this.establishWebSocketConnection();
+      
+      // Avvia il meccanismo di keep-alive con comandi
+      this.startKeepAlive();
       
       return true;
     } catch (error) {
@@ -131,6 +136,8 @@ class SsmSession {
 
         this.ws.on('open', () => {
           this.isConnected = true;
+          this.lastActivityTimestamp = Date.now(); // Registra l'orario di connessione
+          
           // Puliamo il timeout quando la connessione è stabilita
           clearTimeout(connectionTimeout);
           
@@ -140,12 +147,19 @@ class SsmSession {
             console.warn("Notifica connessione stabilita fallita:", e);
           }
           
-          // Inizia il ping periodico per mantenere viva la connessione
+          // Inizia il ping periodico per mantenere viva la connessione WebSocket
           this.pingInterval = setInterval(() => {
             try {
               if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 // Invia un ping per mantenere attiva la connessione
                 this.ws.ping();
+                
+                // Se sono passati più di 4 minuti dall'ultima attività, invia un comando vuoto
+                const inactivityTime = Date.now() - this.lastActivityTimestamp;
+                if (inactivityTime > 240000) { // 4 minuti
+                  console.log("Inattività rilevata, invio comando keep-alive");
+                  this.sendKeepAliveCommand();
+                }
               }
             } catch (error) {
               console.error('Errore durante il ping:', error);
@@ -172,6 +186,9 @@ class SsmSession {
         });
 
         this.ws.on('message', (data) => {
+          // Aggiorna il timestamp dell'ultima attività
+          this.lastActivityTimestamp = Date.now();
+          
           try {
             // Prima verifichiamo se il messaggio contiene binari incomprensibili
             const isBinaryGarbage = Buffer.isBuffer(data) && data.some(byte => byte < 32 && ![9, 10, 13].includes(byte));
@@ -287,10 +304,12 @@ class SsmSession {
         this.ws.on('ping', () => {
           if (process.env.DEBUG) console.log('Ping ricevuto dal server');
           // Rispondiamo automaticamente con un pong (gestito internamente da ws)
+          this.lastActivityTimestamp = Date.now(); // Anche i ping contano come attività
         });
         
         this.ws.on('pong', () => {
           if (process.env.DEBUG) console.log('Pong ricevuto dal server');
+          this.lastActivityTimestamp = Date.now(); // Anche i pong contano come attività
         });
 
         this.ws.on('error', (error) => {
@@ -308,11 +327,8 @@ class SsmSession {
         this.ws.on('close', (code, reason) => {
           this.isConnected = false;
           
-          // Ferma il ping periodico
-          if (this.pingInterval) {
-            clearInterval(this.pingInterval);
-            this.pingInterval = null;
-          }
+          // Ferma i timer di keep-alive
+          this.stopKeepAlive();
           
           const reasonStr = reason ? `: ${reason.toString()}` : '';
           this.onData(`\r\n\x1b[33mConnessione WebSocket chiusa (codice: ${code}${reasonStr})\x1b[0m\r\n`);
@@ -324,6 +340,51 @@ class SsmSession {
         reject(error);
       }
     });
+  }
+  
+  /**
+   * Avvia i meccanismi di keep-alive per la sessione
+   */
+  startKeepAlive() {
+    // Il pingInterval è già configurato nell'evento 'open' del WebSocket
+    
+    // Avvia un intervallo separato che invia comandi periodici per mantenere attiva la shell
+    this.keepAliveInterval = setInterval(() => {
+      if (this.isConnected) {
+        this.sendKeepAliveCommand();
+      }
+    }, 300000); // Ogni 5 minuti invia un comando keep-alive
+  }
+  
+  /**
+   * Invia un comando keep-alive che non modifica lo stato della shell
+   */
+  sendKeepAliveCommand() {
+    if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      // Comando che non produce output visibile e non altera lo stato
+      this.sendInput(':;\r\n');
+      
+      if (process.env.DEBUG) {
+        console.log(`Keep-alive inviato per la sessione ${this.sessionId}`);
+      }
+    }
+  }
+  
+  /**
+   * Arresta tutti i meccanismi di keep-alive
+   */
+  stopKeepAlive() {
+    // Ferma il ping periodico
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    
+    // Ferma l'invio di comandi keep-alive
+    if (this.keepAliveInterval) {
+      clearInterval(this.keepAliveInterval);
+      this.keepAliveInterval = null;
+    }
   }
 
   /**
@@ -339,6 +400,9 @@ class SsmSession {
     }
 
     try {
+      // Aggiorna il timestamp dell'ultima attività
+      this.lastActivityTimestamp = Date.now();
+      
       // Codifica i dati come payload binario
       const payload = Buffer.from(data).toString('base64');
       
@@ -397,6 +461,9 @@ class SsmSession {
         sessionId: this.sessionId,
         TokenValue: this.tokenValue  // Corretto da 'token' a 'TokenValue' per coerenza con l'API SSM
       }));
+      
+      // Anche il ridimensionamento conta come attività
+      this.lastActivityTimestamp = Date.now();
     } catch (error) {
       this.onError(`\r\n\x1b[31mErrore nel ridimensionamento del terminale: ${error.message}\x1b[0m\r\n`);
     }
@@ -406,11 +473,8 @@ class SsmSession {
    * Chiude la sessione SSM
    */
   async terminate() {
-    // Ferma il ping periodico
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
+    // Ferma i meccanismi di keep-alive
+    this.stopKeepAlive();
 
     // Chiudi WebSocket se esistente
     if (this.ws) {
