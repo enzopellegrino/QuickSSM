@@ -342,8 +342,8 @@ ipcMain.on('start-ssm-session', async (event, { profile, instanceId, sessionId, 
     // Create a PTY session that runs the AWS SSM command
     const ptyProcess = pty.spawn(shell, ['-c', ssmCommand], {
       name: 'xterm-color',
-      cols: 80,
-      rows: 24,
+      cols: 150,
+      rows: 23,
       env: env,
       cwd: process.env.HOME
     });
