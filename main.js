@@ -341,11 +341,19 @@ ipcMain.on('start-ssm-session', async (event, { profile, instanceId, sessionId, 
     
     // Create a PTY session that runs the AWS SSM command
     const ptyProcess = pty.spawn(shell, ['-c', ssmCommand], {
-      name: 'xterm-color',
-      cols: 150,
-      rows: 23,
-      env: env,
-      cwd: process.env.HOME
+      name: 'xterm-256color',
+      cols: 170,
+      rows: 40,
+      env: {
+        ...env,
+        COLORTERM: 'truecolor',
+        TERM_PROGRAM: 'HudlOps',
+        LANG: 'it_IT.UTF-8',
+        LC_ALL: 'it_IT.UTF-8'
+      },
+      encoding: 'utf8',
+      cwd: process.env.HOME,
+      useConpty: process.platform === 'win32'
     });
     
     // Save the PTY session
