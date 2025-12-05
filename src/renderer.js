@@ -40,6 +40,18 @@ window.connectToMultiple = function() {
   document.getElementById('ec2Modal').style.display = 'none';
 };
 
+
+// Global function for selecting all instances
+window.selectAllInstances = function() {
+  const checkboxes = document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]');
+  checkboxes.forEach(cb => cb.checked = true);
+};
+
+// Global function for deselecting all instances
+window.deselectAllInstances = function() {
+  const checkboxes = document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]');
+  checkboxes.forEach(cb => cb.checked = false);
+};
 // Function to determine the full path of AWS CLI
 function getAwsPath() {
   // Common paths where the AWS executable might be found

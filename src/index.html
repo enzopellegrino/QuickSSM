@@ -300,9 +300,15 @@
     <div style="background:#1e1e1e; padding:20px; border-radius:8px; width:700px; max-height:80vh; display:flex; flex-direction:column;">
       <h3 style="margin-top:0;">Select EC2 Instances</h3>
       <div id="ec2MultiselectContainer" style="flex:1; overflow:auto; margin:10px 0; display: none;"></div>
-      <div style="text-align:right; margin-top:10px; padding-top:10px; border-top:1px solid #444;">
-        <button id="connectMultipleInstances" onclick="window.connectToMultiple()" style="background: #4CAF50;">🔗 Connect to Selected</button>
-        <button id="cancelEc2Selection">❌ Cancel</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid #444;">
+        <div>
+          <button onclick="window.selectAllInstances()" style="background: #2196F3; margin-right:5px;">✓ Select All</button>
+          <button onclick="window.deselectAllInstances()" style="background: #FF9800;">✗ Deselect All</button>
+        </div>
+        <div>
+          <button id="connectMultipleInstances" onclick="window.connectToMultiple()" style="background: #4CAF50;">🔗 Connect to Selected</button>
+          <button id="cancelEc2Selection">❌ Cancel</button>
+        </div>
       </div>
     </div>
   </div>
