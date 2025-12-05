@@ -9,6 +9,7 @@ const { execSync } = require('child_process');
 
 // Global function for connecting to multiple instances
 window.connectToMultiple = function() {
+  alert('[DEBUG] Connect button clicked!');
   console.log('[QuickSSM] connectToMultiple invoked');
   const selectedInstances = Array.from(document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]:checked')).map(cb => ({
     id: cb.value,
