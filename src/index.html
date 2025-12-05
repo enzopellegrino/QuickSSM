@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>OPS</title>
+  <title>QuickSSM</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
   <style>
     html, body {
@@ -211,8 +211,8 @@
 <body>
   <div class="header-container" style="display: flex; align-items: center; justify-content: space-between;">
     <div style="display: flex; align-items: center; gap: 15px;">
-      <img src="logo.png" alt="HudlOps Logo" style="height: 50px;">
-      <h1 style="margin: 0;">OPS</h1>
+      <img src="logo.png" alt="QuickSSM Logo" style="height: 50px; display: block;">
+      <h1 style="margin: 0; letter-spacing: 1px; font-weight: 600;">QuickSSM</h1>
     </div>
     <div style="display: flex; gap: 10px;">
       <button id="setupSession">🧩 Setup SSO Session</button>
@@ -225,6 +225,7 @@
     <div>
       <label for="profileSelect">AWS Profile:</label><br>
       <select id="profileSelect"></select>
+      <button id="deleteProfile" title="Delete selected profile" style="background-color: #d32f2f; color: white; padding: 6px 10px;">🗑️</button>
     </div>
 
     <div>
@@ -250,10 +251,13 @@
       </select>
     </div>
 
-    <div>
-      <label for="ec2Select">EC2 Instance:</label><br>
-      <button id="openEc2Modal">📋 Select EC2 Instances</button>
-      <select id="ec2Select"></select>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <label for="ec2Select">EC2 Instance:</label>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="text" id="instanceSearch" placeholder="🔍 Search instances..." style="width: 200px;">
+        <select id="ec2Select" style="flex: 1; min-width: 300px;"></select>
+        <button id="openEc2Modal">📋 Select EC2 Instances</button>
+      </div>
     </div>
 
   </div>

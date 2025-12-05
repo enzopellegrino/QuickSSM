@@ -98,6 +98,7 @@ function loadProfiles() {
   profiles.forEach(profileName => {
     const option = document.createElement('option');
     option.value = profileName;
+    option.dataset.profileName = profileName;
 
     const match = profileName.match(/_(\d{12})$/);
     if (match) {
@@ -148,6 +149,34 @@ function loadProfiles() {
     loadEc2Instances(initialProfile, initialRegion);
   }
 }
+
+// Delete profile functionality
+document.getElementById('deleteProfile')?.addEventListener('click', async () => {
+  const profileSelect = document.getElementById('profileSelect');
+  const profileName = profileSelect.value;
+  
+  if (!profileName) {
+    alert('Please select a profile to delete');
+    return;
+  }
+  
+  const confirmed = confirm(`Are you sure you want to delete the profile "${profileName}"?\n\nThis action cannot be undone.`);
+  
+  if (!confirmed) return;
+  
+  try {
+    const result = await ipcRenderer.invoke('delete-aws-profile', profileName);
+    
+    if (result.success) {
+      alert(`Profile "${profileName}" deleted successfully!`);
+      loadProfiles(); // Reload profiles
+    } else {
+      alert(`Error deleting profile: ${result.error}`);
+    }
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  }
+});
 
 // Replace the loadEc2Instances function with a version that uses AWS SDK
 async function loadEc2Instances(profile, region) {
@@ -209,6 +238,9 @@ async function loadEc2Instances(profile, region) {
     const ec2Select = document.getElementById('ec2Select');
     ec2Select.innerHTML = '';
 
+    // Store all instances for search filtering
+    window.allInstances = instances;
+    
     if (instances.length === 0) {
       const emptyMsg = document.createElement('p');
       emptyMsg.style.color = 'gray';
@@ -267,6 +299,50 @@ document.getElementById('applyEc2Selection').addEventListener('click', () => {
   const buttonLabel = selectedInstances.length ? `Selected ${selectedInstances.length} instances` : 'Select EC2 Instances';
   document.getElementById('openEc2Modal').textContent = buttonLabel;
   document.getElementById('ec2Modal').style.display = 'none';
+});
+
+// Search functionality for instances
+document.getElementById('instanceSearch').addEventListener('input', (e) => {
+  const searchTerm = e.target.value.toLowerCase();
+  const ec2Select = document.getElementById('ec2Select');
+  const ec2Container = document.getElementById('ec2MultiselectContainer');
+  
+  if (!window.allInstances) return;
+  
+  // Filter instances based on search term
+  const filteredInstances = window.allInstances.filter(([id, name]) => {
+    return name.toLowerCase().includes(searchTerm) || id.toLowerCase().includes(searchTerm);
+  });
+  
+  // Update dropdown
+  ec2Select.innerHTML = '';
+  if (filteredInstances.length === 0) {
+    const noOption = document.createElement('option');
+    noOption.value = '';
+    noOption.textContent = 'No matches found';
+    noOption.disabled = true;
+    noOption.selected = true;
+    ec2Select.appendChild(noOption);
+  } else {
+    filteredInstances.forEach(([id, name]) => {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = `${name} (${id})`;
+      ec2Select.appendChild(option);
+    });
+  }
+  
+  // Update modal checkboxes
+  const checkboxes = ec2Container.querySelectorAll('div:not(:first-child)');
+  checkboxes.forEach(row => {
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+      const id = checkbox.value;
+      const name = checkbox.dataset.name;
+      const matches = name.toLowerCase().includes(searchTerm) || id.toLowerCase().includes(searchTerm);
+      row.style.display = matches ? 'block' : 'none';
+    }
+  });
 
   const profile = document.getElementById('profileSelect').value;
   const region = document.getElementById('regionSelect').value || 'us-east-1';

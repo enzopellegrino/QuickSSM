@@ -1,0 +1,32 @@
+
+> hudlops@1.0.0 dist:mac-env-debug
+> export $(grep -v '^#' .env | xargs) && DEBUG=electron-notarize:* electron-builder --mac --publish never
+
+  • electron-builder  version=26.0.12 os=24.6.0
+  • loaded configuration  file=package.json ("build" field)
+  • author is missed in the package.json  appPackageFile=/Users/enzo.pellegrino/Progetti/HudlOps/package.json
+  • @electron/rebuild already used by electron-builder, please consider to remove excess dependency from devDependencies
+
+To ensure your native dependencies are always matched electron version, simply add script `"postinstall": "electron-builder install-app-deps" to your `package.json`
+  • unresolved deps  unresolved=@aws-crypto/sha256-js@aws-crypto/supports-web-crypto@aws-crypto/util@aws-sdk/types@aws-sdk/util-locate-windowtslib
+                     nodeModuleDir=/Users/enzo.pellegrino/Progetti/HudlOps/node_modules
+                     round=0
+  • unresolved deps  unresolved=tslib nodeModuleDir=/Users/enzo.pellegrino/Progetti/HudlOps/node_modules round=0
+  • unresolved deps  unresolved=tslib nodeModuleDir=/Users/enzo.pellegrino/Progetti/HudlOps/node_modules round=0
+  • unresolved deps  unresolved=tslib nodeModuleDir=/Users/enzo.pellegrino/Progetti/HudlOps/node_modules round=0
+  • unresolved deps  unresolved=@aws-sdk/typestslib nodeModuleDir=/Users/enzo.pellegrino/Progetti/HudlOps/node_modules round=0
+  • unresolved deps  unresolved=tslib nodeModuleDir=/Users/enzo.pellegrino/Progetti/HudlOps/node_modules round=0
+  • unresolved deps  unresolved=tslib nodeModuleDir=/Users/enzo.pellegrino/Progetti/HudlOps/node_modules round=0
+  • unresolved deps  unresolved=tslib nodeModuleDir=/Users/enzo.pellegrino/Progetti/HudlOps/node_modules round=0
+  • executing @electron/rebuild  electronVersion=29.4.6 arch=arm64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=arm64
+  • preparing       moduleName=node-pty arch=arm64
+  • finished        moduleName=node-pty arch=arm64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=arm64 electron=29.4.6 appOutDir=dist/mac-arm64
+  • map async       taskCount=2
+  • map async       taskCount=1
+  • map async       taskCount=255
+  • path doesn't exist  path=/Users/enzo.pellegrino/Progetti/HudlOps/build/src/icon.png
+  • path resolved   path=/Users/enzo.pellegrino/Progetti/HudlOps/src/icon.png outputFormat=icns
+  • signing         file=dist/mac-arm64/HudlOps.app platform=darwin type=distribution identityName=Developer ID Application: Enzo Pellegrino (T4T6H838Y2) identityHash=79B2605061925D62F0A64E913FE13D9952C62031 provisioningProfile=none

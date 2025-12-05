@@ -1,6 +1,6 @@
-# HudlOps - Gestione Sessioni SSM per AWS
+# QuickSSM - Fast AWS Session Manager
 
-HudlOps è un'applicazione desktop che semplifica la gestione e l'avvio di sessioni AWS Systems Manager (SSM) verso istanze EC2. Permette di navigare facilmente tra profili AWS, regioni e istanze, e avviare sessioni di terminale direttamente nell'applicazione o nel terminale di sistema.
+QuickSSM è un'applicazione desktop che semplifica la gestione e l'avvio di sessioni AWS Systems Manager (SSM) verso istanze EC2. Permette di navigare facilmente tra profili AWS, regioni e istanze, e avviare sessioni di terminale direttamente nell'applicazione o nel terminale di sistema.
 
 ![Screenshot applicazione](src/screenshot.png)
 

@@ -3,10 +3,46 @@ const path = require('path');
 const os = require('os');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
+const ini = require('ini');
 const { SsmSession } = require('./src/aws-ssm-api');
 
 // Define a default AWS path
 const DEFAULT_AWS_PATH = '/Users/enzo.pellegrino/homebrew/bin/aws';
+
+// IPC handler to delete AWS profile
+ipcMain.handle('delete-aws-profile', async (event, profileName) => {
+  try {
+    const configPath = path.join(os.homedir(), '.aws', 'config');
+    const credsPath = path.join(os.homedir(), '.aws', 'credentials');
+    
+    // Delete from config file
+    if (fs.existsSync(configPath)) {
+      const configContent = fs.readFileSync(configPath, 'utf-8');
+      const configData = ini.parse(configContent);
+      
+      // Delete profile (with and without 'profile ' prefix)
+      delete configData[profileName];
+      delete configData[`profile ${profileName}`];
+      
+      fs.writeFileSync(configPath, ini.stringify(configData));
+    }
+    
+    // Delete from credentials file
+    if (fs.existsSync(credsPath)) {
+      const credsContent = fs.readFileSync(credsPath, 'utf-8');
+      const credsData = ini.parse(credsContent);
+      
+      delete credsData[profileName];
+      
+      fs.writeFileSync(credsPath, ini.stringify(credsData));
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting profile:', error);
+    return { success: false, error: error.message };
+  }
+});
 
 // Function to find the AWS CLI path
 function findAwsCliPath() {
