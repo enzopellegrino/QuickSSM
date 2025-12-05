@@ -7,6 +7,39 @@ const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { execSync } = require('child_process');
 
+// Global function for connecting to multiple instances
+window.connectToMultiple = function() {
+  const selectedInstances = Array.from(document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]:checked')).map(cb => ({
+    id: cb.value,
+    label: cb.dataset.name
+  }));
+
+  if (selectedInstances.length === 0) {
+    alert('Please select at least one instance');
+    return;
+  }
+
+  const profile = document.getElementById('profileSelect').value;
+  const region = document.getElementById('regionSelect').value;
+  
+  if (!profile) {
+    alert('Please select an AWS profile first');
+    return;
+  }
+
+  // Connect to each selected instance
+  selectedInstances.forEach(instance => {
+    window.electronAPI.startSession({
+      instanceId: instance.id,
+      profile: profile,
+      region: region,
+      label: instance.label
+    });
+  });
+
+  document.getElementById('ec2Modal').style.display = 'none';
+};
+
 // Function to determine the full path of AWS CLI
 function getAwsPath() {
   // Common paths where the AWS executable might be found
@@ -241,6 +274,9 @@ async function loadEc2Instances(profile, region) {
     // Store all instances for search filtering
     window.allInstances = instances;
     
+    // Sort instances alphabetically by name
+    instances.sort((a, b) => a[1].localeCompare(b[1]));
+    
     if (instances.length === 0) {
       const emptyMsg = document.createElement('p');
       emptyMsg.style.color = 'gray';
@@ -290,16 +326,7 @@ document.getElementById('cancelEc2Selection').addEventListener('click', () => {
   document.getElementById('ec2Modal').style.display = 'none';
 });
 
-document.getElementById('applyEc2Selection').addEventListener('click', () => {
-  const selectedInstances = Array.from(document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]:checked')).map(cb => ({
-    id: cb.value,
-    label: cb.dataset.name
-  }));
 
-  const buttonLabel = selectedInstances.length ? `Selected ${selectedInstances.length} instances` : 'Select EC2 Instances';
-  document.getElementById('openEc2Modal').textContent = buttonLabel;
-  document.getElementById('ec2Modal').style.display = 'none';
-});
 
 // Search functionality for instances
 document.getElementById('instanceSearch').addEventListener('input', (e) => {
@@ -313,6 +340,9 @@ document.getElementById('instanceSearch').addEventListener('input', (e) => {
   const filteredInstances = window.allInstances.filter(([id, name]) => {
     return name.toLowerCase().includes(searchTerm) || id.toLowerCase().includes(searchTerm);
   });
+  
+  // Sort filtered instances alphabetically
+  filteredInstances.sort((a, b) => a[1].localeCompare(b[1]));
   
   // Update dropdown
   ec2Select.innerHTML = '';
@@ -519,6 +549,57 @@ document.getElementById('setupSession').addEventListener('click', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadProfiles();
+
+  // Show/hide empty state logo based on terminal tabs
+  function updateEmptyStateLogo() {
+    const terminalTabs = document.getElementById('terminalTabs');
+    const emptyStateLogo = document.getElementById('emptyStateLogo');
+    if (terminalTabs && emptyStateLogo) {
+      const hasActiveTabs = terminalTabs.querySelector('.active');
+      emptyStateLogo.style.display = hasActiveTabs ? 'none' : 'block';
+    }
+  }
+
+  // Check initially and whenever tabs change
+  updateEmptyStateLogo();
+  const observer = new MutationObserver(updateEmptyStateLogo);
+  const terminalTabsEl = document.getElementById('terminalTabs');
+  if (terminalTabsEl) {
+    observer.observe(terminalTabsEl, { childList: true, subtree: true, attributes: true });
+  }
+
+  // Connect to multiple selected instances
+  document.getElementById('connectMultipleInstances').addEventListener('click', () => {
+    const selectedInstances = Array.from(document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]:checked')).map(cb => ({
+      id: cb.value,
+      label: cb.dataset.name
+    }));
+
+    if (selectedInstances.length === 0) {
+      alert('Please select at least one instance');
+      return;
+    }
+
+    const profile = document.getElementById('profileSelect').value;
+    const region = document.getElementById('regionSelect').value;
+    
+    if (!profile) {
+      alert('Please select an AWS profile first');
+      return;
+    }
+
+    // Connect to each selected instance
+    selectedInstances.forEach(instance => {
+      window.electronAPI.startSession({
+        instanceId: instance.id,
+        profile: profile,
+        region: region,
+        label: instance.label
+      });
+    });
+
+    document.getElementById('ec2Modal').style.display = 'none';
+  });
 });
 
 document.getElementById('discoverProfiles').addEventListener('click', () => {
