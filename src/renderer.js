@@ -52,6 +52,25 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     console.warn('[QuickSSM] #connectMultipleInstances not found at DOMContentLoaded');
   }
+
+  // Ensure modal opens with flex display so clicks are registered
+  const openModalBtn = document.getElementById('openEc2Modal');
+  const ec2Modal = document.getElementById('ec2Modal');
+  if (openModalBtn && ec2Modal) {
+    openModalBtn.addEventListener('click', () => {
+      ec2Modal.style.display = 'flex';
+      console.log('[QuickSSM] EC2 modal opened (display:flex)');
+    });
+  }
+
+  // Ensure cancel button hides the modal
+  const cancelBtn = document.getElementById('cancelEc2Selection');
+  if (cancelBtn && ec2Modal) {
+    cancelBtn.addEventListener('click', () => {
+      ec2Modal.style.display = 'none';
+      console.log('[QuickSSM] EC2 modal closed via cancel');
+    });
+  }
 });
 
 
