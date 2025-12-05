@@ -23,7 +23,7 @@ window.connectToMultiple = function() {
   }
 
   const profile = document.getElementById('profileSelect').value;
-  const region = document.getElementById('regionSelect').value;
+  const region = document.getElementById('regionSelect').value || 'us-east-1';
   
   console.log('[QuickSSM] Profile:', profile, 'Region:', region);
   
@@ -32,16 +32,120 @@ window.connectToMultiple = function() {
     return;
   }
 
-  // Connect to each selected instance
+  // Connect to each selected instance using the same logic as the main Connect button
   console.log('[QuickSSM] Starting connections for', selectedInstances.length, 'instances');
   selectedInstances.forEach(instance => {
     console.log('[QuickSSM] Connecting to:', instance);
-    window.electronAPI.startSession({
-      instanceId: instance.id,
-      profile: profile,
-      region: region,
-      label: instance.label
+    
+    const sessionId = `ssm-${sessionCounter++}`;
+    const tab = document.createElement('div');
+    tab.className = 'tab';
+    tab.id = `tab-${sessionId}`;
+    tab.setAttribute('data-instance-id', instance.id);
+    tab.innerHTML = `${instance.label}<button>❌</button>`;
+    tabsBar.appendChild(tab);
+
+    const termDiv = document.createElement('div');
+    termDiv.id = `terminal-${sessionId}`;
+    terminalTabs.appendChild(termDiv);
+
+    const term = new Terminal({
+      fontFamily: 'monospace',
+      fontSize: 14,
+      lineHeight: 1.2,
+      cursorBlink: true,
+      scrollback: 2000,
+      theme: {
+        background: '#1e1e1e',
+        foreground: '#d4d4d4',
+        cursor: '#ffffff',
+        selection: '#264f78'
+      },
+      convertEol: true
     });
+
+    const fitAddon = new FitAddon();
+    term.open(termDiv);
+    term.loadAddon(fitAddon);
+    fitAddon.fit();
+    setTimeout(() => term.scrollToBottom(), 100);
+    term.focus();
+    terminals[sessionId] = term;
+    term._fitAddon = fitAddon;
+
+    term.write('Starting SSM session...\r\n');
+
+    // Start the SSM session
+    ipcRenderer.send('start-ssm-session', {
+      profile,
+      instanceId: instance.id,
+      sessionId,
+      region,
+      awsPath
+    });
+
+    // Setup terminal data handler
+    let connectionTimeout = setTimeout(() => {
+      term.write('\r\n\x1b[31mSSM session not responding. Possible causes:\r\n');
+      term.write('- Expired AWS credentials\r\n');
+      term.write('- EC2 instance not reachable\r\n');
+      term.write('- Network issues\r\n');
+      term.write('Try reloading AWS profiles or checking the instance status.\x1b[0m\r\n');
+    }, 20000);
+
+    let hasReceivedData = false;
+
+    ipcRenderer.on(`terminal-data-${sessionId}`, (_, data) => {
+      if (!hasReceivedData) {
+        hasReceivedData = true;
+        clearTimeout(connectionTimeout);
+      }
+      
+      if (data.includes('The default interactive shell is now zsh')) {
+        return;
+      }
+      
+      if (data.includes('AccessDeniedException') && data.includes('ssm:TerminateSession')) {
+        console.warn('Warning: Missing permission ssm:TerminateSession');
+        return;
+      }
+      
+      term.write(data);
+    });
+
+    ipcRenderer.on(`terminal-error-${sessionId}`, (_, errorMessage) => {
+      term.write(`\r\n\x1b[31mError: ${errorMessage}\x1b[0m\r\n`);
+    });
+
+    term.onData(data => {
+      ipcRenderer.send('terminal-input', { sessionId, data });
+    });
+
+    const closeBtn = tab.querySelector('button');
+    closeBtn.onclick = () => {
+      ipcRenderer.send('terminate-session', sessionId);
+      tab.remove();
+      termDiv.remove();
+      delete terminals[sessionId];
+      if (Object.keys(terminals).length === 0) {
+        sessionCounter = 0;
+      }
+    };
+
+    tab.onclick = (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#terminalTabs > div').forEach(d => d.style.display = 'none');
+      tab.classList.add('active');
+      termDiv.style.display = 'block';
+      term.focus();
+      fitAddon.fit();
+    };
+
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#terminalTabs > div').forEach(d => d.style.display = 'none');
+    tab.classList.add('active');
+    termDiv.style.display = 'block';
   });
 
   document.getElementById('ec2Modal').style.display = 'none';
