@@ -9,12 +9,13 @@ const { execSync } = require('child_process');
 
 // Global function for connecting to multiple instances
 window.connectToMultiple = function() {
-  alert('[DEBUG] Connect button clicked!');
   console.log('[QuickSSM] connectToMultiple invoked');
   const selectedInstances = Array.from(document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]:checked')).map(cb => ({
     id: cb.value,
     label: cb.dataset.name
   }));
+
+  console.log('[QuickSSM] Selected instances:', selectedInstances);
 
   if (selectedInstances.length === 0) {
     alert('Please select at least one instance');
@@ -24,13 +25,17 @@ window.connectToMultiple = function() {
   const profile = document.getElementById('profileSelect').value;
   const region = document.getElementById('regionSelect').value;
   
+  console.log('[QuickSSM] Profile:', profile, 'Region:', region);
+  
   if (!profile) {
     alert('Please select an AWS profile first');
     return;
   }
 
   // Connect to each selected instance
+  console.log('[QuickSSM] Starting connections for', selectedInstances.length, 'instances');
   selectedInstances.forEach(instance => {
+    console.log('[QuickSSM] Connecting to:', instance);
     window.electronAPI.startSession({
       instanceId: instance.id,
       profile: profile,
