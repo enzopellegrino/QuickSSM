@@ -9,6 +9,7 @@ const { execSync } = require('child_process');
 
 // Global function for connecting to multiple instances
 window.connectToMultiple = function() {
+  console.log('[QuickSSM] connectToMultiple invoked');
   const selectedInstances = Array.from(document.querySelectorAll('#ec2MultiselectContainer input[type="checkbox"]:checked')).map(cb => ({
     id: cb.value,
     label: cb.dataset.name
@@ -39,6 +40,19 @@ window.connectToMultiple = function() {
 
   document.getElementById('ec2Modal').style.display = 'none';
 };
+
+// Ensure the click handler is bound after DOM content is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('connectMultipleInstances');
+  if (btn) {
+    // Avoid double-binding by removing any existing listener reference
+    btn.onclick = null;
+    btn.addEventListener('click', window.connectToMultiple);
+    console.log('[QuickSSM] Bound click handler to #connectMultipleInstances');
+  } else {
+    console.warn('[QuickSSM] #connectMultipleInstances not found at DOMContentLoaded');
+  }
+});
 
 
 // Global function for selecting all instances
