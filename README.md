@@ -1,106 +1,67 @@
-# QuickSSM - Fast AWS Session Manager
+# QuickSSM 🚀
 
-QuickSSM è un'applicazione desktop che semplifica la gestione e l'avvio di sessioni AWS Systems Manager (SSM) verso istanze EC2. Permette di navigare facilmente tra profili AWS, regioni e istanze, e avviare sessioni di terminale direttamente nell'applicazione o nel terminale di sistema.
+<p align="center">
+  <img src="src/logo.png" alt="QuickSSM Logo" width="200"/>
+</p>
 
-![Screenshot applicazione](src/screenshot.png)
+<p align="center">
+  <strong>Fast and Beautiful AWS Session Manager for EC2 Instances</strong>
+</p>
 
-## Funzionalità principali
+---
 
-- 🔄 Gestione di sessioni SSM multiple in tab
-- 🔐 Supporto per profili AWS multipli, incluso AWS SSO
-- 🌎 Selezione di regioni AWS
-- 🖥️ Visualizzazione e selezione di istanze EC2 
-- 📝 Terminale integrato con supporto xterm completo
-- 🐚 Opzione per aprire sessioni nel terminale di sistema
+## ✨ Features
 
-## Requisiti
+- 🖥️ **Multi-Instance Management**: Connect to multiple EC2 instances simultaneously
+- 🔍 **Smart Search**: Quickly find instances by name or ID
+- 📋 **Bulk Operations**: Select multiple instances and connect with one click  
+- 🎨 **Beautiful UI**: Dark mode with modern design
+- ⚡ **Fast & Lightweight**: Built with Electron for native performance
+- 🔐 **AWS SSO Support**: Full integration with AWS SSO and IAM profiles
+- 📊 **Profile Management**: Easy AWS profile discovery and configuration
 
-- AWS CLI installato e configurato
-- Node.js v14+ (per lo sviluppo)
-- Profili AWS configurati in `~/.aws/config` o `~/.aws/credentials`
-- Permessi IAM appropriati per SSM (`ssm:StartSession`, `ssm:DescribeInstanceInformation`)
+## 📋 Requirements
 
-## Installazione
+- **macOS**: 10.15 (Catalina) or later
+- **AWS CLI v2**: Required for SSM sessions
+- **AWS Account**: With proper IAM permissions for SSM
 
-### Da binari precompilati
+## 🔧 Installation
 
-1. Scarica l'ultima versione dall'area Releases
-2. Estrai il file zip (Windows/Linux) o installa il file .dmg (macOS)
-3. Avvia l'applicazione HudlOps
-
-### Da sorgente
+### 1. Install AWS CLI v2
 
 ```bash
-# Clona il repository
-git clone https://github.com/yourusername/hudlops.git
-cd hudlops
+# Using Homebrew
+brew install awscli
 
-# Installa le dipendenze
-npm install
-
-# Avvia l'applicazione in modalità sviluppo
-npm start
-
-# Build dell'applicazione
-npm run dist
+# Verify installation
+aws --version
 ```
 
-## Risoluzione dei problemi comuni
+### 2. Install QuickSSM
 
-### Errore 254 durante l'avvio della sessione SSM
+Download the latest `QuickSSM.dmg` from [Releases](https://github.com/enzopellegrino/QuickSSM/releases)
 
-Questo errore indica un problema di connessione con l'istanza. Possibili cause:
+## 🚀 Quick Start
 
-1. **Credenziali scadute**: Le tue credenziali AWS potrebbero essere scadute.
-   - Soluzione: Esegui `aws sso login --profile <nome-profilo>` o usa il pulsante "Setup SSO Session"
+1. Configure AWS SSO: `aws configure sso`
+2. Launch QuickSSM
+3. Select profile and region
+4. Connect to your instances!
 
-2. **Istanza non connessa a SSM**: L'istanza EC2 non è registrata con AWS Systems Manager.
-   - Verifica che l'agente SSM sia installato e in esecuzione sull'istanza
-   - Controlla che l'istanza abbia accesso a internet o endpoint VPC per SSM
-   - Assicurati che l'istanza abbia un ruolo IAM con i permessi necessari per SSM
+## 📖 Full Documentation
 
-3. **Permessi insufficienti**: Il tuo utente/ruolo AWS non ha i permessi necessari.
-   - Verifica di avere almeno i permessi `ssm:StartSession`
+See [DISTRIBUTION.md](DISTRIBUTION.md) for build and distribution details.
 
-4. **Problemi di rete**: Possibili problemi di connettività tra l'applicazione e AWS.
-   - Verifica la tua connessione internet
-   - Controlla eventuali problemi con firewall o VPN
+## 👤 Author
 
-### Usa lo strumento di diagnostica
+**Enzo Pellegrino**  
+Created at Footage IT @ Hudl
 
-HudlOps include uno strumento di diagnostica che può aiutarti a identificare la causa dei problemi di connessione:
+## 📝 License
 
-1. Seleziona un profilo e un'istanza
-2. Clicca sul pulsante "🔍 Diagnostica Connessione"
-3. Analizza i risultati per identificare e risolvere il problema
+MIT License
 
-### Soluzione alternativa: Terminale nativo
+---
 
-Se riscontri problemi con il terminale integrato, puoi utilizzare il pulsante "🖥️ Open in Terminal" per avviare la sessione SSM nel terminale di sistema nativo, che potrebbe funzionare meglio in alcuni ambienti.
-
-## Sviluppo
-
-HudlOps è sviluppato utilizzando:
-
-- Electron per l'interfaccia desktop
-- AWS SDK v3 per JavaScript
-- node-pty per l'integrazione del terminale
-- xterm.js per l'emulazione del terminale
-
-### Struttura del progetto
-
-```
-hudlops/
-  ├── main.js            # Processo principale Electron
-  ├── package.json       # Configurazione del progetto
-  ├── src/
-  │   ├── aws-ssm-api.js # API per AWS SSM
-  │   ├── index.html     # UI dell'applicazione
-  │   └── renderer.js    # Logica dell'interfaccia utente
-  └── build/
-      └── ...            # File per il packaging
-```
-
-## Licenza
-
-MIT
+<p align="center">Made with ❤️ by Enzo Pellegrino</p>

@@ -4,7 +4,7 @@
   "description": "QuickSSM - Fast AWS Session Manager for EC2 instances",
   "main": "main.js",
   "build": {
-    "appId": "com.hudl.ops",
+    "appId": "com.enzopellegrino.quickssm",
     "productName": "QuickSSM",
     "mac": {
       "target": [
