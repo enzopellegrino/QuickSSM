@@ -11,7 +11,7 @@
         "dmg",
         "zip"
       ],
-      "icon": "src/icon.png",
+      "icon": "src/icon.icns",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
@@ -22,7 +22,7 @@
     },
     "dmg": {
       "title": "QuickSSM",
-      "icon": "src/icon.png",
+      "icon": "src/icon.icns",
       "background": "src/icon.png",
       "contents": [
         {
@@ -39,11 +39,11 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "src/icon.png"
+      "icon": "src/icon.icns"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "src/icon.png",
+      "icon": "src/icon.icns",
       "category": "Development"
     },
     "files": [

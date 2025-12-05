@@ -206,7 +206,7 @@ function createWindow () {
       contextIsolation: false,
       nodeIntegration: true
     },
-    icon: path.join(__dirname, 'src/icon.png') // Set the icon for the window too
+    icon: path.join(__dirname, 'src/icon.icns') // Set the icon for the window too
   });
 
   mainWindow.maximize();
